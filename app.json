@@ -2,6 +2,7 @@
   "expo": {
     "name": "SafraCerta",
     "slug": "SafraCerta",
+    "scheme": "safracerta",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +23,24 @@
     },
     "plugins": [
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permita que o SafraCerta use a câmera para fotografar folhas.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o SafraCerta acesse suas fotos para selecionar uma folha.",
+          "cameraPermission": "Permita que o SafraCerta use a câmera para fotografar folhas.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

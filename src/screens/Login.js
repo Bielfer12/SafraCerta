@@ -1,11 +1,14 @@
 import { useState } from "react";
-import {ActivityIndicator,Alert,ImageBackground,Modal,SafeAreaView,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
+import {ActivityIndicator,Alert,ImageBackground,Modal,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { autenticacao } from "../services/firebase";
 
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -32,7 +35,7 @@ export default function Login() {
 
     try {
       await signInWithEmailAndPassword(autenticacao, emailNormalizado, senha);
-      Alert.alert("Acesso liberado", "Você entrou na sua conta SafraCerta.");
+      router.replace("/home");
     } catch (error) {
       if (error.code === "auth/invalid-credential") {
         setErro("E-mail ou senha incorretos.");
@@ -107,7 +110,6 @@ export default function Login() {
           <View style={styles.cardLogin}>
             <View style={styles.linhaLabelSenha}>
               <Text style={styles.label}>E-mail</Text>
-              <Text style={styles.obrigatorio}>Obrigatório</Text>
             </View>
             <View style={styles.campoWrap}>
               <Ionicons name="mail-outline" size={20} color="#41493E" />
