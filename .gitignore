@@ -42,3 +42,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Deep Learning datasets
+data/
+datasets/
+TPDD_Honglin_CLS_YOLO/
+
+# Model weights
+*.pt
+
+# Jupyter
+.ipynb_checkpoints/
