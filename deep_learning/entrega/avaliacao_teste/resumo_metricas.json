@@ -1,0 +1,9 @@
+{
+  "quantidade_imagens": 185,
+  "acuracia": 0.8324324324324325,
+  "precisao_macro": 0.7302035637973138,
+  "recall_macro": 0.7537067928908536,
+  "f1_macro": 0.733288018368825,
+  "top1_ultralytics": 0.8324324488639832,
+  "top5_ultralytics": 0.9945945739746094
+}
