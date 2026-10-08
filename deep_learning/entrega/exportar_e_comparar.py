@@ -8,6 +8,8 @@ Dependencias:
 """
 
 from pathlib import Path
+import platform
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -84,14 +86,27 @@ def predict_tflite(interpreter: tf.lite.Interpreter, path: Path) -> tuple[int, n
     return int(np.argmax(values)), values.astype(np.float32)
 
 
+def export_tflite(model: YOLO) -> Path:
+    if platform.system() != "Windows":
+        exported = model.export(format="tflite", imgsz=224)
+        return Path(exported)
+
+    saved_model_dir = Path(model.export(format="saved_model", imgsz=224))
+    exported = saved_model_dir / "best_float32.tflite"
+    if not exported.is_file():
+        raise FileNotFoundError(
+            f"Exportacao SavedModel nao gerou o arquivo esperado: {exported}"
+        )
+    return exported
+
+
 def main() -> None:
     model = YOLO(str(MODEL_PATH))
     names = class_names(model)
     (ROOT / "classes.txt").write_text("\n".join(names) + "\n", encoding="utf-8")
 
-    exported = model.export(format="tflite", imgsz=224)
-    exported_path = Path(exported)
-    exported_path.replace(TFLITE_PATH)
+    exported_path = export_tflite(model)
+    shutil.copyfile(exported_path, TFLITE_PATH)
 
     interpreter = tf.lite.Interpreter(model_path=str(TFLITE_PATH))
     interpreter.allocate_tensors()
