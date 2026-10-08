@@ -4,9 +4,11 @@
 
 Os resultados de teste e o modelo PyTorch treinado foram preservados em
 `avaliacao_teste/` e `treinamento/weights/best.pt`. A exportacao TFLite e a
-comparacao automatica estao implementadas em `exportar_e_comparar.py`, mas nao
-foram executadas neste ambiente porque ele nao possui PyTorch, Ultralytics ou
-TensorFlow instalados. Portanto, nenhum `.tflite` ficticio foi incluido.
+comparacao automatica estao implementadas em
+`exportar_e_comparar.py`. No Windows, o script usa o caminho intermediario
+SavedModel porque o exportador LiteRT nativo do Ultralytics exige Linux x86 ou
+macOS. O resultado final continua sendo gravado como
+`SafraCerta_classificador_float32.tflite`.
 
 Para concluir a exportacao:
 
