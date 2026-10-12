@@ -5,6 +5,12 @@ GabrielCasagrande
 
 # dependencies
 node_modules/
+.agents/
+.cursor/
+.venv/
+__pycache__/
+*.py[cod]
+logs/
 
 # Expo
 .expo/
