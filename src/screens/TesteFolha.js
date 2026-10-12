@@ -1,20 +1,62 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
-  Image,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  analisarFoto,
+  ApiError,
+  ApiTimeoutError,
+} from "../services/analiseFolha";
+import { obterNomeClassificacao } from "../utils/nomesClassificacoes";
+
+const TIPOS_IMAGEM = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+const obterExtensao = (uri = "") => {
+  const caminho = uri.split(/[?#]/)[0];
+  return caminho.split(".").pop()?.toLowerCase();
+};
+
+const criarFotoDaGaleria = (asset) => {
+  const extensao = obterExtensao(asset.uri);
+  const tipo = asset.mimeType ?? TIPOS_IMAGEM[extensao] ?? "image/jpeg";
+  const extensaoFinal = tipo.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+
+  return {
+    uri: asset.uri,
+    nome: asset.fileName ?? `folha.${extensaoFinal}`,
+    tipo,
+  };
+};
+
+const obterPorcentagem = (pontuacao) => {
+  const valor = Number(pontuacao);
+  if (!Number.isFinite(valor)) return null;
+  return Math.round(Math.min(Math.max(valor, 0), 1) * 100);
+};
+
+const formatarPontuacao = (pontuacao) => {
+  const porcentagem = obterPorcentagem(pontuacao);
+  return porcentagem === null ? "—" : `${porcentagem}%`;
+};
 
 export default function TesteFolha() {
   const camera = useRef(null);
@@ -24,6 +66,28 @@ export default function TesteFolha() {
   const [cameraPronta, setCameraPronta] = useState(false);
   const [tirandoFoto, setTirandoFoto] = useState(false);
   const [dicasAbertas, setDicasAbertas] = useState(false);
+  const [resultado, setResultado] = useState(null);
+  const [erroAnalise, setErroAnalise] = useState(null);
+  const [analisando, setAnalisando] = useState(false);
+  const solicitacaoAtual = useRef(0);
+  const controllerAtual = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      solicitacaoAtual.current += 1;
+      controllerAtual.current?.abort();
+    };
+  }, []);
+
+  const atualizarFoto = (novaFoto) => {
+    solicitacaoAtual.current += 1;
+    controllerAtual.current?.abort();
+    controllerAtual.current = null;
+    setAnalisando(false);
+    setResultado(null);
+    setErroAnalise(null);
+    setFoto(novaFoto);
+  };
 
   const abrirCamera = async () => {
     let permissao = permissaoCamera;
@@ -54,7 +118,11 @@ export default function TesteFolha() {
         quality: 0.85,
       });
 
-      setFoto(resultado.uri);
+      atualizarFoto({
+        uri: resultado.uri,
+        nome: `folha-${Date.now()}.jpg`,
+        tipo: "image/jpeg",
+      });
       setCameraAberta(false);
     } catch {
       Alert.alert(
@@ -76,7 +144,7 @@ export default function TesteFolha() {
       });
 
       if (!resultado.canceled) {
-        setFoto(resultado.assets[0].uri);
+        atualizarFoto(criarFotoDaGaleria(resultado.assets[0]));
       }
     } catch {
       Alert.alert(
@@ -85,6 +153,54 @@ export default function TesteFolha() {
       );
     }
   };
+
+  const iniciarAnalise = async () => {
+    if (!foto || controllerAtual.current) return;
+
+    const idSolicitacao = solicitacaoAtual.current + 1;
+    solicitacaoAtual.current = idSolicitacao;
+    const controller = new AbortController();
+    controllerAtual.current = controller;
+    setAnalisando(true);
+    setErroAnalise(null);
+
+    try {
+      const analise = await analisarFoto(foto, controller.signal);
+
+      if (solicitacaoAtual.current !== idSolicitacao) return;
+      setResultado(analise);
+    } catch (erro) {
+      if (solicitacaoAtual.current !== idSolicitacao || erro?.name === "AbortError") {
+        return;
+      }
+
+      if (erro instanceof ApiTimeoutError) {
+        setErroAnalise("A análise demorou mais de 60 segundos. Tente novamente.");
+      } else if (erro instanceof ApiError) {
+        setErroAnalise(erro.message);
+      } else {
+        setErroAnalise(
+          "Não foi possível conectar à API. Confira o endereço, a rede e se o servidor está ligado.",
+        );
+      }
+    } finally {
+      if (solicitacaoAtual.current === idSolicitacao) {
+        controllerAtual.current = null;
+        setAnalisando(false);
+      }
+    }
+  };
+
+  const analisarOutraFoto = () => atualizarFoto(null);
+
+  const outrasPossibilidades = resultado
+    ? (Array.isArray(resultado.top3) ? resultado.top3 : []).filter(
+        (item) =>
+          item.classe_id !== resultado.classe_id &&
+          item.classe !== resultado.classe &&
+          (obterPorcentagem(item.pontuacao) ?? 0) > 0,
+      )
+    : [];
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -106,18 +222,18 @@ export default function TesteFolha() {
             style={StyleSheet.absoluteFill}
           />
           <SafeAreaView style={styles.cameraInterface}>
-            <TouchableOpacity
+            <Pressable
               accessibilityLabel="Fechar câmera"
               onPress={() => setCameraAberta(false)}
               style={styles.fecharCamera}
             >
               <Ionicons name="close" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
+            </Pressable>
             <View pointerEvents="none" style={styles.guiaCamera}>
               <Ionicons name="leaf-outline" size={42} color="#94F990" />
               <Text style={styles.textoGuiaCamera}>Centralize a folha</Text>
             </View>
-            <TouchableOpacity
+            <Pressable
               accessibilityLabel="Tirar foto"
               disabled={!cameraPronta || tirandoFoto}
               onPress={tirarFoto}
@@ -127,19 +243,19 @@ export default function TesteFolha() {
               ]}
             >
               <View style={styles.disparadorCentro} />
-            </TouchableOpacity>
+            </Pressable>
           </SafeAreaView>
         </View>
       </Modal>
 
       <View style={styles.cabecalho}>
-        <TouchableOpacity
+        <Pressable
           accessibilityLabel="Voltar"
           style={styles.botaoIcone}
           onPress={() => router.back()}
         >
           <Ionicons name="arrow-back" size={24} color="#1A1C19" />
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.tituloCabecalho}>Diagnosticar</Text>
         <View style={styles.logoFolha}>
           <Ionicons name="leaf" size={19} color="#00450D" />
@@ -150,7 +266,7 @@ export default function TesteFolha() {
         contentContainerStyle={styles.conteudo}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity activeOpacity={0.8} style={styles.talhao}>
+        <Pressable style={styles.talhao}>
           <View style={styles.iconeTalhao}>
             <Ionicons name="map" size={20} color="#00450D" />
           </View>
@@ -159,21 +275,26 @@ export default function TesteFolha() {
             <Text style={styles.nomeTalhao}>Talhão 02 • Capivaras do Meio</Text>
           </View>
           <Ionicons name="chevron-down" size={20} color="#41493E" />
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={styles.visor}>
           {foto ? (
             <Image
+              key={foto.uri}
               accessibilityLabel="Folha selecionada para análise"
-              source={{ uri: foto }}
-              resizeMode="cover"
+              source={foto.uri}
+              cachePolicy="none"
+              contentFit="cover"
+              priority="high"
+              recyclingKey={foto.uri}
+              transition={180}
               style={styles.camera}
             />
           ) : (
             <View style={styles.camera} />
           )}
 
-          {!foto && (
+          {!foto ? (
             <>
               <View style={styles.controlesSuperiores}>
                 <View style={styles.distancia}>
@@ -192,21 +313,26 @@ export default function TesteFolha() {
                 </View>
               </View>
             </>
-          )}
+          ) : null}
 
           <View style={styles.estadoFoco}>
             <View style={styles.pontoFoco} />
             <Text style={styles.textoEstadoFoco}>
-              {foto ? "Imagem pronta para análise" : "Posicione a folha no centro"}
+              {resultado
+                ? "Foto analisada"
+                : analisando
+                  ? "Analisando foto…"
+                  : foto
+                    ? "Imagem pronta para análise"
+                    : "Posicione a folha no centro"}
             </Text>
           </View>
         </View>
 
         <View style={styles.dicas}>
-          <TouchableOpacity
+          <Pressable
             accessibilityRole="button"
             accessibilityState={{ expanded: dicasAbertas }}
-            activeOpacity={0.7}
             style={[styles.topoDicas, dicasAbertas && styles.topoDicasAberto]}
             onPress={() => setDicasAbertas((abertas) => !abertas)}
           >
@@ -218,8 +344,8 @@ export default function TesteFolha() {
               size={20}
               color="#41493E"
             />
-          </TouchableOpacity>
-          {dicasAbertas && (
+          </Pressable>
+          {dicasAbertas ? (
             <View style={styles.listaDicas}>
               <View style={styles.dica}>
                 <Ionicons name="scan-outline" size={21} color="#00450D" />
@@ -234,62 +360,163 @@ export default function TesteFolha() {
                 <Text style={styles.textoDica}>Folha firme</Text>
               </View>
             </View>
-          )}
+          ) : null}
         </View>
 
-        {foto ? (
-          <TouchableOpacity
-            style={styles.botaoPrincipal}
-            onPress={() =>
-              Alert.alert(
-                "Imagem pronta",
-                "A folha foi carregada e está pronta para análise.",
-              )
-            }
-          >
-            <View style={styles.iconeBotaoPrincipal}>
-              <Ionicons name="sparkles" size={24} color="#002204" />
-            </View>
-            <View style={styles.textosBotaoPrincipal}>
-              <Text style={styles.tituloBotaoPrincipal}>
-                Escanear folha agora
+        {resultado ? (
+          <>
+            <View style={styles.resultadoPrincipal}>
+              <View style={styles.cabecalhoResultado}>
+                <View style={styles.iconeResultado}>
+                  <Ionicons name="leaf" size={22} color="#00450D" />
+                </View>
+                <Text style={styles.rotuloResultado}>Classificação principal</Text>
+              </View>
+              <Text style={styles.nomeResultado}>
+                {obterNomeClassificacao(
+                  resultado.classe,
+                  resultado.nome_exibicao,
+                )}
               </Text>
-              <Text style={styles.subtituloBotaoPrincipal}>
-                Usar a imagem selecionada
+              <View style={styles.pontuacaoResultado}>
+                <Text style={styles.rotuloPontuacao}>Pontuação do modelo</Text>
+                <Text style={styles.valorPontuacao}>
+                  {formatarPontuacao(resultado.pontuacao)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.possibilidades}>
+              <Text style={styles.tituloSecaoResultado}>Outras possibilidades</Text>
+              {outrasPossibilidades.length > 0 ? (
+                outrasPossibilidades.map((item) => (
+                  <View
+                    key={`${item.classe_id}-${item.classe}`}
+                    style={styles.possibilidade}
+                  >
+                    <View style={styles.textosPossibilidade}>
+                      <Text style={styles.nomePossibilidade}>
+                        {obterNomeClassificacao(item.classe, item.nome_exibicao)}
+                      </Text>
+                      <Text style={styles.codigoPossibilidade}>
+                        Classe {item.classe_id}
+                      </Text>
+                    </View>
+                    <Text style={styles.valorPossibilidade}>
+                      {formatarPontuacao(item.pontuacao)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.semPossibilidades}>
+                  Não possui outras possibilidades.
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.limitesResultado}>
+              <Text style={styles.textoLimitesResultado}>
+                O modelo classifica a imagem inteira e não indica a localização da
+                doença nem tratamento. As alternativas são hipóteses, e a pontuação
+                não é garantia de acerto.
               </Text>
             </View>
-            <Ionicons name="arrow-forward" size={25} color="#FFFFFF" />
-          </TouchableOpacity>
+
+            <Pressable style={styles.botaoPrincipal} onPress={analisarOutraFoto}>
+              <View style={styles.iconeBotaoPrincipal}>
+                <Ionicons name="refresh" size={24} color="#002204" />
+              </View>
+              <View style={styles.textosBotaoPrincipal}>
+                <Text style={styles.tituloBotaoPrincipal}>Analisar outra foto</Text>
+                <Text style={styles.subtituloBotaoPrincipal}>
+                  Fotografar ou escolher outro arquivo
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={25} color="#FFFFFF" />
+            </Pressable>
+          </>
         ) : (
-          <TouchableOpacity
-            disabled={tirandoFoto}
-            style={styles.botaoPrincipal}
-            onPress={abrirCamera}
-          >
-            <View style={styles.iconeBotaoPrincipal}>
-              <Ionicons name="camera" size={24} color="#002204" />
-            </View>
-            <View style={styles.textosBotaoPrincipal}>
-              <Text style={styles.tituloBotaoPrincipal}>
-                {tirandoFoto ? "Capturando..." : "Fotografar folha"}
-              </Text>
-              <Text style={styles.subtituloBotaoPrincipal}>
-                Manter o aparelho firme
-              </Text>
-            </View>
-            <Ionicons name="radio-button-on" size={27} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
+          <>
+            {erroAnalise ? (
+              <View style={styles.erroAnalise}>
+                <Ionicons name="alert-circle" size={22} color="#9B2C2C" />
+                <View style={styles.textosErroAnalise}>
+                  <Text style={styles.tituloErroAnalise}>Análise não concluída</Text>
+                  <Text style={styles.textoErroAnalise}>{erroAnalise}</Text>
+                </View>
+              </View>
+            ) : null}
 
-        <View style={styles.acoesSecundarias}>
-          <TouchableOpacity
-            style={styles.botaoSecundario}
-            onPress={escolherArquivo}
-          >
-            <Ionicons name="images-outline" size={23} color="#41493E" />
-            <Text style={styles.textoBotaoSecundario}>Enviar arquivo</Text>
-          </TouchableOpacity>
-        </View>
+            {foto ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: analisando, busy: analisando }}
+                disabled={analisando}
+                style={[
+                  styles.botaoPrincipal,
+                  analisando && styles.botaoPrincipalDesativado,
+                ]}
+                onPress={iniciarAnalise}
+              >
+                <View style={styles.iconeBotaoPrincipal}>
+                  {analisando ? (
+                    <ActivityIndicator color="#002204" />
+                  ) : (
+                    <Ionicons name="sparkles" size={24} color="#002204" />
+                  )}
+                </View>
+                <View style={styles.textosBotaoPrincipal}>
+                  <Text style={styles.tituloBotaoPrincipal}>
+                    {analisando
+                      ? "Analisando foto…"
+                      : erroAnalise
+                        ? "Tentar novamente"
+                        : "Escanear folha agora"}
+                  </Text>
+                  <Text style={styles.subtituloBotaoPrincipal}>
+                    {analisando
+                      ? "Isso pode levar até 60 segundos"
+                      : "Usar a imagem selecionada"}
+                  </Text>
+                </View>
+                {analisando ? null : (
+                  <Ionicons name="arrow-forward" size={25} color="#FFFFFF" />
+                )}
+              </Pressable>
+            ) : (
+              <Pressable
+                disabled={tirandoFoto}
+                style={styles.botaoPrincipal}
+                onPress={abrirCamera}
+              >
+                <View style={styles.iconeBotaoPrincipal}>
+                  <Ionicons name="camera" size={24} color="#002204" />
+                </View>
+                <View style={styles.textosBotaoPrincipal}>
+                  <Text style={styles.tituloBotaoPrincipal}>
+                    {tirandoFoto ? "Capturando..." : "Fotografar folha"}
+                  </Text>
+                  <Text style={styles.subtituloBotaoPrincipal}>
+                    Manter o aparelho firme
+                  </Text>
+                </View>
+                <Ionicons name="radio-button-on" size={27} color="#FFFFFF" />
+              </Pressable>
+            )}
+
+            <View style={styles.acoesSecundarias}>
+              <Pressable
+                style={styles.botaoSecundario}
+                onPress={escolherArquivo}
+              >
+                <Ionicons name="images-outline" size={23} color="#41493E" />
+                <Text style={styles.textoBotaoSecundario}>
+                  {foto ? "Trocar imagem" : "Enviar arquivo"}
+                </Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -445,7 +672,13 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: "#2F312E",
   },
-  camera: { ...StyleSheet.absoluteFillObject },
+  camera: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
   permissaoCamera: { alignItems: "center", paddingHorizontal: 34 },
   iconePermissao: {
     width: 64,
@@ -616,6 +849,110 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F4EF",
   },
   textoDica: { color: "#1A1C19", fontSize: 11, fontWeight: "800" },
+  resultadoPrincipal: {
+    gap: 14,
+    padding: 18,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#CDE8C8",
+    borderRadius: 20,
+    borderCurve: "continuous",
+    backgroundColor: "#F0FAED",
+  },
+  cabecalhoResultado: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  iconeResultado: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    borderCurve: "continuous",
+    backgroundColor: "#ACF4A4",
+  },
+  rotuloResultado: {
+    color: "#41643E",
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.65,
+  },
+  nomeResultado: { color: "#153B19", fontSize: 25, fontWeight: "900" },
+  pontuacaoResultado: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#CDE8C8",
+  },
+  rotuloPontuacao: { flex: 1, color: "#41643E", fontSize: 13, fontWeight: "700" },
+  valorPontuacao: { color: "#00450D", fontSize: 20, fontWeight: "900" },
+  possibilidades: {
+    gap: 10,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#E3E3DE",
+    borderRadius: 18,
+    borderCurve: "continuous",
+    backgroundColor: "#FFFFFF",
+  },
+  tituloSecaoResultado: {
+    color: "#41493E",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.55,
+  },
+  possibilidade: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderCurve: "continuous",
+    backgroundColor: "#F4F4EF",
+  },
+  textosPossibilidade: { flex: 1, gap: 3 },
+  nomePossibilidade: { color: "#1A1C19", fontSize: 14, fontWeight: "800" },
+  codigoPossibilidade: { color: "#717A6D", fontSize: 11, fontWeight: "600" },
+  valorPossibilidade: { color: "#00450D", fontSize: 16, fontWeight: "900" },
+  semPossibilidades: {
+    color: "#717A6D",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  limitesResultado: {
+    paddingHorizontal: 4,
+    marginTop: 10,
+  },
+  textoLimitesResultado: {
+    color: "#717A6D",
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: "center",
+  },
+  erroAnalise: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 14,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#F0C9C9",
+    borderRadius: 16,
+    borderCurve: "continuous",
+    backgroundColor: "#FFF2F2",
+  },
+  textosErroAnalise: { flex: 1, gap: 3 },
+  tituloErroAnalise: { color: "#7A1E1E", fontSize: 13, fontWeight: "900" },
+  textoErroAnalise: { color: "#7A3C3C", fontSize: 12, lineHeight: 18 },
   botaoPrincipal: {
     minHeight: 70,
     flexDirection: "row",
