@@ -5,7 +5,7 @@ Esta API usa o best.pt original enviado no ZIP. É classificação de 16 classes
 ## 1. Instalar (uma vez)
 
 1. Instale Python **3.11 de 64 bits**, com o Python Launcher (`py`).
-2. Extraia TODO este ZIP, por exemplo em `C:\SafraCerta_API`. Não execute os arquivos dentro do ZIP.
+2. Entre na pasta `deep_learning\SafraCerta_API\api_modelo` do projeto.
 3. Abra `instalar_windows.bat`. Ele cria `.venv` e instala PyTorch para CPU e as dependências. A primeira instalação exige internet e pode demorar.
 4. Se houver erro, mantenha a janela e copie a mensagem. Não precisa ativar o ambiente pelo PowerShell.
 

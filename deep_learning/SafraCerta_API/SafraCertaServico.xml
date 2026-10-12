@@ -3,9 +3,9 @@
   <name>SafraCerta API</name>
   <description>API de classificação de folhas do SafraCerta.</description>
 
-  <executable>%BASE%\.venv\Scripts\python.exe</executable>
+  <executable>%BASE%\api_modelo\.venv\Scripts\python.exe</executable>
   <arguments>-m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1</arguments>
-  <workingdirectory>%BASE%</workingdirectory>
+  <workingdirectory>%BASE%\api_modelo</workingdirectory>
 
   <startmode>Automatic</startmode>
   <onfailure action="restart" delay="10 sec"/>
