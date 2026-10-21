@@ -4,7 +4,7 @@ py -3.11 -m venv .venv
 if errorlevel 1 goto erro
 .venv\Scripts\python.exe -m pip install --upgrade pip
 if errorlevel 1 goto erro
-.venv\Scripts\python.exe -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+.venv\Scripts\python.exe -m pip install torch==2.11.0+cpu torchvision==0.26.0+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
 if errorlevel 1 goto erro
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 if errorlevel 1 goto erro
