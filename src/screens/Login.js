@@ -3,13 +3,19 @@ import {ActivityIndicator,Alert,ImageBackground,Modal,ScrollView,StatusBar,Style
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import { sendPasswordResetEmail } from "firebase/auth";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  entrarComMatricula,
+  MENSAGEM_CONTA_DESATIVADA,
+  MENSAGEM_LOGIN_INVALIDO,
+} from "../services/autenticacao";
 import { autenticacao } from "../services/firebase";
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [matricula, setMatricula] = useState("");
+  const [emailRecuperacao, setEmailRecuperacao] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [lembrarAcesso, setLembrarAcesso] = useState(true);
@@ -18,15 +24,7 @@ export default function Login() {
   const [mostrarRecuperacao, setMostrarRecuperacao] = useState(false);
 
   const entrar = async () => {
-    const emailNormalizado = email.trim().toLowerCase();
-
-    if (!emailNormalizado || !emailNormalizado.includes("@")) {
-      setErro("Informe um e-mail válido.");
-      return;
-    }
-
-    if (senha.length < 6) {
-      setErro("A senha deve ter pelo menos 6 caracteres.");
+    if (carregando) {
       return;
     }
 
@@ -34,26 +32,24 @@ export default function Login() {
     setCarregando(true);
 
     try {
-      await signInWithEmailAndPassword(autenticacao, emailNormalizado, senha);
+      await entrarComMatricula(matricula, senha);
       router.replace("/home");
     } catch (error) {
-      if (error.code === "auth/invalid-credential") {
-        setErro("E-mail ou senha incorretos.");
-      } else if (error.code === "auth/too-many-requests") {
-        setErro("Muitas tentativas. Aguarde um momento e tente novamente.");
-      } else {
-        setErro("Não foi possível entrar. Verifique sua conexão e tente novamente.");
-      }
+      setErro(
+        error?.message === MENSAGEM_CONTA_DESATIVADA
+          ? MENSAGEM_CONTA_DESATIVADA
+          : MENSAGEM_LOGIN_INVALIDO,
+      );
     } finally {
       setCarregando(false);
     }
   };
 
   const recuperarSenha = async () => {
-    const emailNormalizado = email.trim().toLowerCase();
+    const emailNormalizado = emailRecuperacao.trim().toLowerCase();
 
     if (!emailNormalizado || !emailNormalizado.includes("@")) {
-      Alert.alert("Informe seu e-mail", "Digite seu e-mail no campo de acesso antes de recuperar a senha.");
+      Alert.alert("Informe seu e-mail", "Digite o e-mail real associado à sua conta.");
       return;
     }
 
@@ -62,6 +58,7 @@ export default function Login() {
     try {
       await sendPasswordResetEmail(autenticacao, emailNormalizado);
       setMostrarRecuperacao(false);
+      setEmailRecuperacao("");
       Alert.alert("E-mail enviado", "Enviamos as instruções para criar uma nova senha.");
     } catch {
       Alert.alert("Não foi possível enviar", "Confira o e-mail informado e tente novamente.");
@@ -109,19 +106,19 @@ export default function Login() {
         <View style={styles.conteudo}>
           <View style={styles.cardLogin}>
             <View style={styles.linhaLabelSenha}>
-              <Text style={styles.label}>E-mail</Text>
+              <Text style={styles.label}>Matrícula</Text>
             </View>
             <View style={styles.campoWrap}>
-              <Ionicons name="mail-outline" size={20} color="#41493E" />
+              <Ionicons name="id-card-outline" size={20} color="#41493E" />
               <TextInput
                 style={styles.campo}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="seuemail@exemplo.com"
+                value={matricula}
+                onChangeText={setMatricula}
+                placeholder="Digite sua matrícula"
                 placeholderTextColor="#798076"
-                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="username"
               />
             </View>
 
@@ -215,11 +212,21 @@ export default function Login() {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalTexto}>
-              Enviaremos um link seguro para criar uma nova senha no e-mail informado na tela de acesso.
+              Enviaremos um link seguro para criar uma nova senha no e-mail real associado à sua conta.
             </Text>
             <View style={styles.opcoesRecuperacao}>
               <Text style={styles.opcoesTitulo}>E-mail para recuperação</Text>
-              <Text style={styles.opcaoTexto}>{email.trim() || "Informe seu e-mail na tela de acesso."}</Text>
+              <TextInput
+                style={styles.campoRecuperacao}
+                value={emailRecuperacao}
+                onChangeText={setEmailRecuperacao}
+                placeholder="seuemail@exemplo.com"
+                placeholderTextColor="#798076"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+              />
             </View>
             <TouchableOpacity
               style={styles.botaoTemporario}
@@ -531,9 +538,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
-  opcaoTexto: {
-    color: "#41493E",
-    fontSize: 12,
+  campoRecuperacao: {
+    minHeight: 40,
+    color: "#1A1C19",
+    fontSize: 14,
+    fontWeight: "600",
+    paddingVertical: 0,
   },
   botaoTemporario: {
     alignItems: "center",

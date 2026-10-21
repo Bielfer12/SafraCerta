@@ -1,0 +1,92 @@
+[debug] [2026-10-21T01:55:45.176Z] ----------------------------------------------------------------------
+[debug] [2026-10-21T01:55:45.179Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Gabriel Casa\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js projects:list
+[debug] [2026-10-21T01:55:45.179Z] CLI Version:   15.34.0
+[debug] [2026-10-21T01:55:45.179Z] Platform:      win32
+[debug] [2026-10-21T01:55:45.179Z] Node Version:  v24.20.0
+[debug] [2026-10-21T01:55:45.180Z] Detected Agent: codex_cli
+[debug] [2026-10-21T01:55:45.180Z] Time:          Tue Oct 20 2026 22:55:45 GMT-0300 (Brasilia Standard Time)
+[debug] [2026-10-21T01:55:45.180Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-10-21T01:55:45.194Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-10-21T01:55:45.195Z] > authorizing via signed-in user (gabrielffernandes609@gmail.com)
+[debug] [2026-10-21T01:55:45.209Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:55:45.210Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:55:45.211Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-10-21T01:55:45.951Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-10-21T01:56:25.971Z] ----------------------------------------------------------------------
+[debug] [2026-10-21T01:56:25.974Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Gabriel Casa\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js firestore:databases:list --project safracerta-ee9ce
+[debug] [2026-10-21T01:56:25.974Z] CLI Version:   15.34.0
+[debug] [2026-10-21T01:56:25.975Z] Platform:      win32
+[debug] [2026-10-21T01:56:25.975Z] Node Version:  v24.20.0
+[debug] [2026-10-21T01:56:25.975Z] Detected Agent: codex_cli
+[debug] [2026-10-21T01:56:25.975Z] Time:          Tue Oct 20 2026 22:56:25 GMT-0300 (Brasilia Standard Time)
+[debug] [2026-10-21T01:56:25.975Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-10-21T01:56:45.246Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-10-21T01:56:45.247Z] > authorizing via signed-in user (gabrielffernandes609@gmail.com)
+[debug] [2026-10-21T01:56:45.247Z] [iam] checking project safracerta-ee9ce for permissions ["datastore.databases.list","firebase.projects.get"]
+[debug] [2026-10-21T01:56:45.260Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:56:45.260Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:56:45.261Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions [none]
+[debug] [2026-10-21T01:56:45.261Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions  x-goog-user-project=safracerta-ee9ce
+[debug] [2026-10-21T01:56:45.261Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions {"permissions":["datastore.databases.list","firebase.projects.get"]}
+[debug] [2026-10-21T01:56:46.300Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions 200
+[debug] [2026-10-21T01:56:46.300Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions {"permissions":["datastore.databases.list","firebase.projects.get"]}
+[debug] [2026-10-21T01:56:46.300Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:56:46.301Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:56:46.301Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/safracerta-ee9ce/databases [none]
+[debug] [2026-10-21T01:56:46.958Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/safracerta-ee9ce/databases 200
+[debug] [2026-10-21T01:57:03.100Z] ----------------------------------------------------------------------
+[debug] [2026-10-21T01:57:03.104Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Gabriel Casa\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js auth:export C:\SafraCerta\.auth-audit-temp.json --format=json --project safracerta-ee9ce
+[debug] [2026-10-21T01:57:03.104Z] CLI Version:   15.34.0
+[debug] [2026-10-21T01:57:03.104Z] Platform:      win32
+[debug] [2026-10-21T01:57:03.104Z] Node Version:  v24.20.0
+[debug] [2026-10-21T01:57:03.104Z] Detected Agent: codex_cli
+[debug] [2026-10-21T01:57:03.105Z] Time:          Tue Oct 20 2026 22:57:03 GMT-0300 (Brasilia Standard Time)
+[debug] [2026-10-21T01:57:03.105Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-10-21T01:57:03.118Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-10-21T01:57:03.118Z] > authorizing via signed-in user (gabrielffernandes609@gmail.com)
+[debug] [2026-10-21T01:57:03.118Z] [iam] checking project safracerta-ee9ce for permissions ["firebase.projects.get","firebaseauth.users.get"]
+[debug] [2026-10-21T01:57:03.130Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:03.131Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:03.132Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions [none]
+[debug] [2026-10-21T01:57:03.133Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions  x-goog-user-project=safracerta-ee9ce
+[debug] [2026-10-21T01:57:03.133Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions {"permissions":["firebase.projects.get","firebaseauth.users.get"]}
+[debug] [2026-10-21T01:57:04.062Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions 200
+[debug] [2026-10-21T01:57:04.062Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions {"permissions":["firebase.projects.get","firebaseauth.users.get"]}
+[info] Exporting accounts to C:\SafraCerta\.auth-audit-temp.json
+[debug] [2026-10-21T01:57:04.064Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:04.064Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:04.065Z] >>> [apiv2][query] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount [none]
+[debug] [2026-10-21T01:57:04.066Z] >>> [apiv2][body] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount {"targetProjectId":"safracerta-ee9ce","maxResults":1000}
+[debug] [2026-10-21T01:57:04.470Z] <<< [apiv2][status] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount 200
+[debug] [2026-10-21T01:57:04.470Z] <<< [apiv2][body] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount [omitted]
+[info] +  Exported 1 account(s) successfully. 
+[debug] [2026-10-21T01:57:58.417Z] ----------------------------------------------------------------------
+[debug] [2026-10-21T01:57:58.420Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Gabriel Casa\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js auth:export C:\SafraCerta\.auth-audit-temp.json --format=json --project safracerta-ee9ce
+[debug] [2026-10-21T01:57:58.420Z] CLI Version:   15.34.0
+[debug] [2026-10-21T01:57:58.420Z] Platform:      win32
+[debug] [2026-10-21T01:57:58.420Z] Node Version:  v24.20.0
+[debug] [2026-10-21T01:57:58.421Z] Detected Agent: codex_cli
+[debug] [2026-10-21T01:57:58.421Z] Time:          Tue Oct 20 2026 22:57:58 GMT-0300 (Brasilia Standard Time)
+[debug] [2026-10-21T01:57:58.421Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-10-21T01:57:58.430Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-10-21T01:57:58.431Z] > authorizing via signed-in user (gabrielffernandes609@gmail.com)
+[debug] [2026-10-21T01:57:58.431Z] [iam] checking project safracerta-ee9ce for permissions ["firebase.projects.get","firebaseauth.users.get"]
+[debug] [2026-10-21T01:57:58.443Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:58.443Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:58.444Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions [none]
+[debug] [2026-10-21T01:57:58.444Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions  x-goog-user-project=safracerta-ee9ce
+[debug] [2026-10-21T01:57:58.445Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions {"permissions":["firebase.projects.get","firebaseauth.users.get"]}
+[debug] [2026-10-21T01:57:59.356Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions 200
+[debug] [2026-10-21T01:57:59.356Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/safracerta-ee9ce:testIamPermissions {"permissions":["firebase.projects.get","firebaseauth.users.get"]}
+[info] Exporting accounts to C:\SafraCerta\.auth-audit-temp.json
+[debug] [2026-10-21T01:57:59.357Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:59.357Z] Checked if tokens are valid: true, expires at: 1792551318609
+[debug] [2026-10-21T01:57:59.357Z] >>> [apiv2][query] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount [none]
+[debug] [2026-10-21T01:57:59.357Z] >>> [apiv2][body] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount {"targetProjectId":"safracerta-ee9ce","maxResults":1000}
+[debug] [2026-10-21T01:57:59.763Z] <<< [apiv2][status] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount 200
+[debug] [2026-10-21T01:57:59.764Z] <<< [apiv2][body] POST https://www.googleapis.com/identitytoolkit/v3/relyingparty/downloadAccount [omitted]
+[info] +  Exported 1 account(s) successfully. 
