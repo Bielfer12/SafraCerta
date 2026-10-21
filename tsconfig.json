@@ -1,5 +1,5 @@
 {
   "compilerOptions": {},
   "extends": "expo/tsconfig.base",
-  "exclude": ["GabrielCasagrande", "node_modules"]
+  "exclude": ["GabrielCasagrande", "node_modules", "functions", ".expo", ".agents", ".claude"]
 }

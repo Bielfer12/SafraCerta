@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth, getReactNativePersistence, initializeAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { connectAuthEmulator, getAuth, getReactNativePersistence, initializeAuth } from "firebase/auth";
+import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
+import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 
 const configuracaoFirebase = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -15,10 +17,18 @@ const configuracaoFirebase = {
 const firebaseJaInicializado = getApps().length > 0;
 const aplicativo = firebaseJaInicializado ? getApp() : initializeApp(configuracaoFirebase);
 
-export const autenticacao = firebaseJaInicializado
+export const autenticacao = firebaseJaInicializado || Platform.OS === "web"
   ? getAuth(aplicativo)
   : initializeAuth(aplicativo, {
       persistence: getReactNativePersistence(AsyncStorage),
     });
 
 export const banco = getFirestore(aplicativo);
+export const funcoes = getFunctions(aplicativo, "southamerica-east1");
+
+const hostEmuladores = process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST;
+if (__DEV__ && hostEmuladores && !firebaseJaInicializado) {
+  connectAuthEmulator(autenticacao, `http://${hostEmuladores}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(banco, hostEmuladores, 8080);
+  connectFunctionsEmulator(funcoes, hostEmuladores, 5001);
+}

@@ -38,11 +38,11 @@ export async function entrarComMatricula(matriculaInformada, senha) {
     }
 
     const perfil = {
-      uid: credencial.user.uid,
       ...perfilSnapshot.data(),
+      uid: credencial.user.uid,
     };
 
-    if (perfil.statusConta !== "ATIVO") {
+    if (perfil.statusConta !== "ATIVO" || perfil.cadastroPendente || perfil.exclusaoPendente) {
       throw new Error(MENSAGEM_CONTA_DESATIVADA);
     }
 
