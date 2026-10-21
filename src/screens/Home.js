@@ -5,9 +5,12 @@ import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { autenticacao } from "../services/firebase";
+import { signOut } from "firebase/auth";
+import { useSessao } from "../context/Sessao";
 
 export default function Home() {
   const [menuAberto, setMenuAberto] = useState(false);
+  const { perfil, admin, mensagem } = useSessao();
   const email = autenticacao.currentUser?.email || "Usuário";
   const inicial = email.charAt(0).toUpperCase();
 
@@ -37,8 +40,9 @@ export default function Home() {
       </View>
 
       <View style={styles.conteudo}>
-        <Text style={styles.titulo}>Olá, {email.split("@")[0]}</Text>
+        <Text style={styles.titulo}>Olá, {perfil?.nomeCompleto?.split(" ")[0] || email.split("@")[0]}</Text>
         <Text style={styles.subtitulo}>Bem-vindo à sua lavoura.</Text>
+        {mensagem ? <Text style={styles.subtitulo}>{mensagem}</Text> : null}
       </View>
 
       <Modal transparent visible={menuAberto} animationType="slide" onRequestClose={() => setMenuAberto(false)}>
@@ -63,6 +67,16 @@ export default function Home() {
             >
               <Ionicons name="leaf-outline" size={22} color="#FFFFFF" />
               <Text style={styles.textoItemMenu}>Teste folha</Text>
+            </TouchableOpacity>
+            {admin ? (
+              <TouchableOpacity accessibilityLabel="Usuários" style={[styles.itemMenu, styles.itemMenuSecundario]} onPress={() => { setMenuAberto(false); router.push("/usuarios"); }}>
+                <Ionicons name="people-outline" size={22} color="#FFFFFF" />
+                <Text style={styles.textoItemMenu}>Usuários</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity accessibilityLabel="Sair da conta" style={[styles.itemMenu, styles.itemMenuSecundario]} onPress={() => signOut(autenticacao)}>
+              <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
+              <Text style={styles.textoItemMenu}>Sair da conta</Text>
             </TouchableOpacity>
           </SafeAreaView>
 

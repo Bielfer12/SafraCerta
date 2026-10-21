@@ -2,18 +2,14 @@ import { useState } from "react";
 import {ActivityIndicator,Alert,ImageBackground,Modal,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  entrarComMatricula,
-  MENSAGEM_CONTA_DESATIVADA,
-  MENSAGEM_LOGIN_INVALIDO,
-} from "../services/autenticacao";
+import { entrarComMatricula, MENSAGEM_CONTA_DESATIVADA, MENSAGEM_LOGIN_INVALIDO } from "../services/autenticacao";
 import { autenticacao } from "../services/firebase";
+import { useSessao } from "../context/Sessao";
 
 export default function Login() {
-  const router = useRouter();
+  const { mensagem } = useSessao();
   const [matricula, setMatricula] = useState("");
   const [emailRecuperacao, setEmailRecuperacao] = useState("");
   const [senha, setSenha] = useState("");
@@ -33,7 +29,6 @@ export default function Login() {
 
     try {
       await entrarComMatricula(matricula, senha);
-      router.replace("/home");
     } catch (error) {
       setErro(
         error?.message === MENSAGEM_CONTA_DESATIVADA
@@ -159,10 +154,10 @@ export default function Login() {
               <Text style={styles.lembrarTexto}>Lembrar neste aparelho (Modo Campo Offline)</Text>
             </TouchableOpacity>
 
-            {erro ? (
+            {erro || mensagem ? (
               <View style={styles.erroBox}>
                 <Ionicons name="alert-circle" size={18} color="#BA1A1A" />
-                <Text style={styles.erroTexto}>{erro}</Text>
+                <Text style={styles.erroTexto}>{erro || mensagem}</Text>
               </View>
             ) : null}
 

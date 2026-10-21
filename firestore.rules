@@ -6,6 +6,14 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    function ehAdminAtivo() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.tipoUsuario == 'ADMIN'
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.statusConta == 'ATIVO'
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('cadastroPendente', false) == false
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('exclusaoPendente', false) == false;
+    }
+
     match /login_por_matricula/{matricula} {
       allow get: if true;
       allow list: if false;
@@ -13,16 +21,14 @@ service cloud.firestore {
     }
 
     match /usuarios/{uid} {
-      allow get: if pertenceAoUsuario(uid);
-      allow list: if false;
+      allow get: if pertenceAoUsuario(uid) || ehAdminAtivo();
+      allow list: if ehAdminAtivo();
       allow create, delete: if false;
       allow update: if pertenceAoUsuario(uid)
         && request.resource.data.tipoUsuario == resource.data.tipoUsuario
         && request.resource.data.statusConta == resource.data.statusConta
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'nomeCompleto',
-          'matricula',
-          'emailInstitucional',
           'telefone'
         ]);
     }
