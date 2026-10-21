@@ -1,100 +1,113 @@
-# SafraCerta — API Python no Windows
+# SafraCerta — classificação e localização da folha
 
-Esta API usa o best.pt original enviado no ZIP. É classificação de 16 classes: não retorna caixas ou máscaras. Não precisa de TFLite, GPU NVIDIA, Firebase ou dataset para iniciar. O YOLO faz o pré-processamento da imagem no Python.
+A API usa os dois pesos em `deep_learning/modelos/`: `best_classificao.pt` para as 16 classes e `best_deteccao.pt` para localizar a **folha inteira**. O detector disponível tem somente a classe `folha`; suas caixas não localizam manchas ou doenças.
 
-## 1. Instalar (uma vez)
+O TesteFolha já envia a foto uma vez, mostra a classificação e desenha a caixa sobre a imagem. Os controles permitem ocultar as marcações e ampliar a foto sem repetir a inferência. A classificação continua usando a imagem completa: a adoção de recortes depende de uma comparação com imagens rotuladas, pois caixas do piloto podem cortar bordas da folha.
 
-1. Instale Python **3.11 de 64 bits**, com o Python Launcher (`py`).
-2. Entre na pasta `deep_learning\SafraCerta_API\api_modelo` do projeto.
-3. Abra `instalar_windows.bat`. Ele cria `.venv` e instala PyTorch para CPU e as dependências. A primeira instalação exige internet e pode demorar.
-4. Se houver erro, mantenha a janela e copie a mensagem. Não precisa ativar o ambiente pelo PowerShell.
+## Instalação no Windows
 
-## 2. Iniciar
+1. Instale Python 3.11 de 64 bits com o launcher `py`.
+2. Abra `instalar_windows.bat` nesta pasta. Ele cria `.venv`, atualiza pip e instala PyTorch 2.11.0/torchvision 0.26.0 para CPU e as dependências. A primeira instalação exige internet.
+3. Abra `iniciar_windows.bat` e espere `Application startup complete`. Mantenha o computador ligado e sem suspensão.
 
-Abra `iniciar_windows.bat` e espere aparecer `Application startup complete`.
-A API carrega o modelo uma vez. Mantenha o terminal aberto e o notebook ligado e sem suspensão.
-Para parar: Ctrl+C. Para voltar: abra o mesmo BAT.
+Os caminhos dos pesos independem do diretório do terminal. Para usar outra pasta, defina `SAFRACERTA_MODELOS_DIR` antes de iniciar; ela deve conter os dois nomes acima. A inicialização falha se faltar um peso ou se a tarefa/classe do detector estiver incorreta. Não baixa outro peso automaticamente.
 
-No notebook, acesse http://127.0.0.1:8000/docs.
-Abra **POST /analisar**, clique **Try it out**, escolha uma foto no campo `foto` e clique **Execute**.
-A documentação /docs pode precisar de internet para carregar seus recursos de interface.
-Teste simples sem essa interface: http://127.0.0.1:8000/saude.
+Execução alternativa, dentro desta pasta:
 
-Alternativa pelo terminal, dentro desta pasta:
-
-```bat
-.venv\Scripts\python.exe -m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
-## 3. Acessar pelo celular
+Use somente um worker: os modelos são carregados uma vez e as inferências compartilham um bloqueio. Cada worker extra criaria outra cópia dos modelos. Se um serviço já estiver usando a porta 8000, não abra uma segunda instância nessa porta.
 
-- Coloque notebook e celular na mesma rede Wi-Fi.
-- No Windows, execute `ipconfig` e encontre o **Endereço IPv4** do adaptador Wi-Fi ativo (exemplo: 192.168.1.100).
-- No navegador do celular, abra `http://SEU_IP:8000/saude`. Deve retornar status ok.
-- Se o Windows solicitar acesso para Python, permita somente na rede privada de confiança. Se não conectar, confira o Firewall para TCP 8000 na rede privada. Não desligue o Firewall inteiro nem abra portas no roteador.
-- Redes de convidados podem bloquear comunicação entre aparelhos. O IP pode mudar ao reconectar.
-- `localhost` no celular aponta para o próprio celular, não para o notebook. `0.0.0.0` é o endereço de escuta, não a URL do cliente.
-- No emulador padrão do Android Studio, use `http://10.0.2.2:8000` para alcançar o notebook hospedeiro.
+## Aplicativo e conexão
 
-## 4. Conectar o TesteFolha
+As configurações ficam em `src/config/api.js`. `EXPO_PUBLIC_API_DOCS_URL` aceita a URL da documentação terminando em `/docs`; o aplicativo deriva a base da API. O endereço padrão no emulador Android é `http://10.0.2.2:8000/docs`.
 
-Copie a função de `react_native_exemplo.ts`, ajuste `API_URL` e passe a URI retornada pela biblioteca de câmera. Envie multipart/form-data com o campo **foto**. Não use Base64 nem defina manualmente Content-Type.
-A função recebe JPEG por padrão. Ao enviar PNG/WebP, informe tipo e nome corretos.
-O arquivo é um exemplo de integração; adapte o componente de câmera e seus estados. A câmera atual do projeto não foi fornecida.
+Para um celular físico, use o IPv4 do computador e mantenha ambos na mesma rede. Confira `http://SEU_IP:8000/saude` no navegador do celular. O Firewall deve permitir TCP 8000 na rede privada. `localhost` no celular aponta para o celular, não para o computador.
 
-Para desenvolvimento Android em HTTP, se ocorrer `CLEARTEXT communication not permitted`, mescle esta configuração na tag `<application>` do manifesto de debug existente (`android/app/src/debug/AndroidManifest.xml`):
+Esta execução continua sendo para rede local. Para hospedagem pública, configure HTTPS, autenticação e limites no servidor. As fotos são processadas em memória, com `save=False`; a API não grava fotos, recortes ou resultados no Firebase.
 
-```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-  <application android:usesCleartextTraffic="true" />
-</manifest>
-```
+## Contrato da versão 2
 
-Recompile o app após mudar o manifesto. Se já houver uma network security config, ajuste a configuração de debug correspondente. Não sobrescreva outras configurações. Para Expo, o ajuste depende do tipo de build/configuração nativa. Para produção, use HTTPS.
+- `GET /saude`: disponibilidade dos modelos e `versao_resposta: 2`.
+- `GET /classes`: os índices e nomes originais das 16 classes de classificação.
+- `POST /analisar`: multipart com campo `foto`, JPEG/PNG/WebP, até 10 MB e 25 milhões de pixels. Não defina manualmente o Content-Type multipart no aplicativo.
 
-## 5. Rotas e resposta
-
-- GET /saude: disponibilidade.
-- GET /classes: classes e índices do modelo.
-- POST /analisar: recebe foto JPEG, PNG ou WebP, até 10 MB e 25 milhões de pixels.
-
-Exemplo ilustrativo (não é previsão real de uma imagem):
+Os campos anteriores (`classe_id`, `classe`, `nome_exibicao`, `pontuacao`, `top3`, `modelo` e `aviso`) permanecem. A resposta acrescenta os campos abaixo. **Este exemplo é ilustrativo e não representa uma previsão real:**
 
 ```json
 {
-  "classe_id": 6,
-  "classe": "healthy",
-  "nome_exibicao": "Saudável",
-  "pontuacao": 0.92,
-  "top3": [
-    {"classe_id": 6, "classe": "healthy", "nome_exibicao": "Saudável", "pontuacao": 0.92},
-    {"classe_id": 2, "classe": "brown_spot", "nome_exibicao": "brown_spot", "pontuacao": 0.05},
-    {"classe_id": 10, "classe": "sunscald", "nome_exibicao": "sunscald", "pontuacao": 0.02}
-  ],
-  "modelo": "YOLO26n-cls",
-  "aviso": "Previsão experimental. A pontuação não garante acerto nem valida que a foto seja de uma folha de fumo."
+  "versao_resposta": 2,
+  "imagem": {"largura": 1200, "altura": 1600},
+  "fonte_classificacao": "imagem_completa",
+  "deteccao_folha": {
+    "estado": "concluido",
+    "itens": [{"id": 1, "classe": "folha", "pontuacao": 0.93, "caixa_xyxyn": [0.12, 0.10, 0.88, 0.92]}]
+  },
+  "deteccao_lesoes": {"estado": "nao_disponivel", "itens": []}
 }
 ```
 
-Nomes de doenças permanecem nos rótulos originais; traduções devem ser validadas pela equipe. O classificador sempre escolhe entre suas classes e não verifica se a imagem é realmente de fumo. Não há limiar arbitrário de diagnóstico implementado.
+As coordenadas são `[x1, y1, x2, y2]` normalizadas entre 0 e 1 na imagem completa **depois da orientação EXIF**. O Ultralytics já restitui as caixas ao tamanho original; não se deve aplicar outra transformação de letterbox. O aplicativo usa `contain` e considera as margens do visor ao desenhar.
 
-Erros: 400 imagem vazia/corrompida; 413 tamanho excedido; 415 formato não aceito; 422 campo foto ausente; 500 falha de inferência. As fotos não são gravadas pela aplicação nem enviadas a serviços de IA externos. Histórico/Firebase ficam para a integração do app.
+O detector roda a 640 pixels, com pontuação mínima 0,25. Na primeira entrega, o alvo deve ser uma folha principal. Candidatas com IoU de pelo menos 0,7 em relação à melhor caixa são tratadas como duplicatas; regiões distintas geram orientação para outra captura. Esses parâmetros são escolhas iniciais do piloto, sem calibração em fotos reais do app. O modelo foi treinado com poucas imagens e caixas da folha principal; não garante rejeitar todo objeto estranho nem localizar todas as folhas de uma cena.
 
-## 6. Execução e hospedagem
+Erros: 400 arquivo vazio/inválido; 413 limites excedidos; 415 formato não aceito; 422 foto ausente, nenhuma folha localizada ou alvo ambíguo; 500 falha técnica de inferência. Sem folha, a API não executa o classificador. O app descarta respostas de uma foto anterior e permite tentar novamente.
 
-Nesta primeira versão você inicia pelo BAT, sem instalar serviço do Windows. A API para se o processo fechar ou o notebook suspender. Para iniciar automaticamente no futuro, configure um serviço/gerenciador ou hospede o mesmo projeto em servidor.
-Esta versão é destinada a testes em rede local, sem autenticação. Antes de disponibilizar na internet, inclua HTTPS, autenticação (por exemplo, validação do token Firebase), limites de requisições e configuração do servidor. Não basta abrir a porta do notebook.
+## Detector de lesões: integração preparada
 
-O bloqueio de inferência serializa chamadas ao modelo. Use um worker durante testes locais; cada worker adicional carregaria outra cópia do modelo.
+Não existe peso de lesões no material fornecido. Para a segunda etapa, preparar imagens originais com regiões anotadas e revisadas, treinar e validar um detector com a classe única `lesao`, preservando os pesos atuais. O planejamento completo está em `PLANEJAMENTO_DETECCAO_FOLHA.md`, na raiz.
 
-## 7. Conteúdo e referências
+Depois da validação, pode-se configurar explicitamente o novo peso antes de iniciar:
 
-- app.py: API, leitura da imagem, inferência e resposta.
-- modelos/best.pt: modelo original do ZIP recebido.
-- requirements.txt: Ultralytics fixado na versão 8.4.174 do treinamento.
-- instalar_windows.bat / iniciar_windows.bat: instalação e execução.
-- react_native_exemplo.ts: envio da foto e timeout de 60 s (não cancela inferência já iniciada no servidor).
-- VALIDACAO.md: testes realizados neste ambiente.
+```powershell
+$env:SAFRACERTA_MODELO_LESOES = 'C:\SafraCerta\deep_learning\modelos\best_lesoes.pt'
+```
 
-Fontes técnicas: https://fastapi.tiangolo.com/tutorial/request-files/ e https://docs.ultralytics.com/modes/predict/.
-O checkpoint informa licença AGPL-3.0; preserve os termos aplicáveis ao distribuir o projeto/modelo.
+Essa variável é opcional e não aponta para um arquivo existente nesta entrega. A API recusa um peso de folhas como detector de lesões. O contrato diferencia:
+
+| Estado de `deteccao_lesoes` | Significado na tela |
+| --- | --- |
+| `nao_disponivel` | O modelo de lesões não foi configurado. |
+| `concluido`, lista vazia | O modelo executou sem encontrar regiões acima do limiar; isso não garante saúde. |
+| `concluido`, com itens | Regiões numeradas sobre a imagem e listadas com pontuações próprias. |
+| `erro` | Falha técnica somente nas lesões; mantém a classificação como resultado parcial e permite nova tentativa. |
+
+O futuro detector usa a imagem completa; a hipótese de doença da folha não é atribuída automaticamente a cada região. Resultados divergentes são apresentados separadamente. Caixas não medem área afetada nem severidade.
+
+## Serviço do Windows
+
+O repositório inclui `../SafraCertaServico.xml`, cujo executável e diretório apontam para `api_modelo` ao lado do wrapper. Um serviço já instalado com uma cópia em Downloads pode continuar executando o código antigo mesmo após editar o projeto.
+
+Na instalação conferida em 21/10/2026, o XML ativo está em `C:\Users\gffernandes\Downloads\SafraCerta_API_Windows\SafraCerta_API\SafraCertaServico.xml`. Esse arquivo foi atualizado para executar a API do projeto em `C:\SafraCerta\deep_learning\SafraCerta_API\api_modelo`; o serviço foi reiniciado e a versão 2 está ativa na porta 8000. O wrapper permanece em Downloads.
+
+No XML usado pelo serviço instalado, os campos devem apontar para:
+
+```xml
+<executable>C:\SafraCerta\deep_learning\SafraCerta_API\api_modelo\.venv\Scripts\python.exe</executable>
+<arguments>-m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1</arguments>
+<workingdirectory>C:\SafraCerta\deep_learning\SafraCerta_API\api_modelo</workingdirectory>
+```
+
+Faça backup do XML antes de alterar. Reiniciar o serviço exige PowerShell como administrador:
+
+```powershell
+Restart-Service -Name SafraCertaAPI
+Invoke-RestMethod http://127.0.0.1:8000/saude
+```
+
+Confira `versao_resposta: 2`, `detector_folha_carregado: true` e `detector_lesoes_carregado: false` enquanto não houver o novo peso. Se houver falha na inicialização, confira os logs do wrapper, restaure o XML anterior e reinicie o serviço.
+
+## Verificação
+
+Dentro desta pasta:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m unittest test_app -v
+```
+
+Na raiz do projeto: `npm run test:folha`, `npm run lint` e `npx tsc --noEmit --incremental false`. `VALIDACAO.md` distingue testes de contrato, inferência real e avaliação de acurácia.
+
+Referências: [Ultralytics Predict](https://docs.ultralytics.com/modes/predict/), [FastAPI UploadFile](https://fastapi.tiangolo.com/tutorial/request-files/) e [Expo Image](https://docs.expo.dev/versions/v57.0.0/sdk/image/). O checkpoint informa licença AGPL-3.0; preserve os termos aplicáveis ao distribuir projeto/modelo.

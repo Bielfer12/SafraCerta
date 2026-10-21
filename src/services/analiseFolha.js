@@ -1,6 +1,7 @@
 import { fetch } from "expo/fetch";
 import { File } from "expo-file-system";
 import { API_BASE_URL } from "../config/api";
+import { analiseValida } from "../utils/localizacaoFolha";
 
 const TIMEOUT_MS = 60_000;
 
@@ -55,6 +56,7 @@ export async function analisarFoto(foto, signal) {
   const controller = new AbortController();
   let tempoEsgotado = false;
   const cancelar = () => controller.abort();
+  if (signal?.aborted) controller.abort();
   const timer = setTimeout(() => {
     tempoEsgotado = true;
     controller.abort();
@@ -74,7 +76,7 @@ export async function analisarFoto(foto, signal) {
       throw new ApiError(obterMensagemErro(json, resposta.status), resposta.status);
     }
 
-    if (!json || typeof json.nome_exibicao !== "string") {
+    if (!analiseValida(json)) {
       throw new ApiError("A API retornou uma resposta inválida.", resposta.status);
     }
 
