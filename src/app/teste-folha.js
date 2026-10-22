@@ -1,3 +1,7 @@
 import TesteFolha from "../screens/TesteFolha";
+import { useSessao } from "../context/Sessao";
 
-export default TesteFolha;
+export default function TelaTesteFolha() {
+  const { usuario } = useSessao();
+  return <TesteFolha key={usuario?.uid} />;
+}

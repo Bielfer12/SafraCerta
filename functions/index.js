@@ -3,6 +3,7 @@ const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { CAMPOS_TALHAO, validarTalhao } = require("./talhoes-validacao");
 
 initializeApp();
 const banco = getFirestore();
@@ -128,7 +129,7 @@ function operacao(funcao) {
         });
       throw new HttpsError(
         "internal",
-        "A operação não foi concluída. Atualize a lista e tente novamente; cadastros pendentes podem ser retomados.",
+        "A operação não foi concluída. Atualize a lista e tente novamente.",
       );
     }
   });
@@ -326,3 +327,72 @@ exports.excluirUsuario = operacao(async (dados, adminUid) => {
   });
   return { concluido: true };
 });
+
+async function gravarTalhao(tipo, entrada, adminUid) {
+  if (!entrada || typeof entrada !== "object" || Array.isArray(entrada))
+    throw new HttpsError("invalid-argument", "Solicitação inválida.");
+  const permitidos = tipo === "EXCLUIR" ? [] : CAMPOS_TALHAO;
+  if (Object.keys(entrada).some((campo) => ![...permitidos, "operacaoId", ...(tipo === "CADASTRAR" ? [] : ["talhaoId", "versao"])].includes(campo)))
+    throw new HttpsError("invalid-argument", "A solicitação contém campos não permitidos.");
+  if (typeof entrada.operacaoId !== "string" || !/^[A-Za-z0-9_-]{10,128}$/.test(entrada.operacaoId))
+    throw new HttpsError("invalid-argument", "Identificador da operação inválido.");
+  const validacao = tipo === "EXCLUIR" ? { dados: {} , erros: {} } : validarTalhao(entrada);
+  if (Object.keys(validacao.erros).length)
+    throw new HttpsError("invalid-argument", "Confira os campos destacados.", { campos: validacao.erros });
+  if (tipo !== "CADASTRAR" && (typeof entrada.talhaoId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(entrada.talhaoId)
+    || !Number.isSafeInteger(entrada.versao) || entrada.versao < 1))
+    throw new HttpsError("invalid-argument", "Talhão ou versão inválidos. Atualize a lista.");
+  const registro = banco.doc(`_operacoes_talhoes/${entrada.operacaoId}`);
+  const referencia = tipo === "CADASTRAR" ? banco.collection("talhoes").doc() : banco.doc(`talhoes/${entrada.talhaoId}`);
+  const assinatura = createHash("sha256").update(JSON.stringify({ tipo, ...validacao.dados, talhaoId: entrada.talhaoId || null, versao: entrada.versao || null })).digest("hex");
+  return banco.runTransaction(async (transacao) => {
+    await conferirAdmin(transacao, adminUid);
+    const anteriorOperacao = await transacao.get(registro);
+    if (anteriorOperacao.exists) {
+      const anterior = anteriorOperacao.data();
+      if (anterior.usuarioId !== adminUid || anterior.tipo !== tipo || anterior.entradaHash !== assinatura)
+        throw new HttpsError("failed-precondition", "Esta operação já foi usada com outros dados. Atualize a lista.");
+      return anterior.resultado;
+    }
+    const atual = await transacao.get(referencia);
+    if (tipo !== "CADASTRAR") {
+      if (!atual.exists) throw new HttpsError("not-found", "Este talhão não está mais cadastrado. Atualize a lista.");
+      if (atual.data().versao !== entrada.versao)
+        throw new HttpsError("aborted", "Este talhão foi alterado. Feche o formulário e atualize a lista antes de continuar.");
+    }
+    const codigoAnterior = atual.data()?.codigo;
+    const codigoNovo = tipo === "EXCLUIR" ? codigoAnterior : validacao.dados.codigo;
+    const indiceNovo = banco.doc(`_talhoes_por_codigo/${codigoNovo}`);
+    const reservaNova = await transacao.get(indiceNovo);
+    const indiceAnterior = codigoAnterior && codigoAnterior !== codigoNovo ? banco.doc(`_talhoes_por_codigo/${codigoAnterior}`) : null;
+    const reservaAnterior = indiceAnterior ? await transacao.get(indiceAnterior) : null;
+    if (reservaNova.exists && reservaNova.data().talhaoId !== referencia.id)
+      throw new HttpsError(tipo === "EXCLUIR" ? "failed-precondition" : "already-exists", "O código informado já está vinculado a outro talhão.", { campos: { codigo: "Código já cadastrado." } });
+    if (reservaAnterior?.exists && reservaAnterior.data().talhaoId !== referencia.id)
+      throw new HttpsError("failed-precondition", "O índice deste talhão está inconsistente. Confira o cadastro antes de continuar.");
+    if (tipo === "EXCLUIR") {
+      const vinculos = await transacao.get(banco.collection("analises").where("talhaoId", "==", referencia.id).limit(1));
+      if (!vinculos.empty) throw new HttpsError("failed-precondition", "Este talhão possui análises vinculadas. Altere a situação para Inativo para preservar o histórico.");
+      transacao.delete(referencia);
+      if (reservaNova.exists) transacao.delete(indiceNovo);
+    } else {
+      const valores = {
+        ...validacao.dados,
+        atualizadoEm: FieldValue.serverTimestamp(),
+        atualizadoPor: adminUid,
+        versao: tipo === "CADASTRAR" ? 1 : entrada.versao + 1,
+      };
+      if (tipo === "CADASTRAR") transacao.create(referencia, { ...valores, criadoEm: FieldValue.serverTimestamp(), criadoPor: adminUid });
+      else transacao.update(referencia, valores);
+      if (!reservaNova.exists) transacao.create(indiceNovo, { talhaoId: referencia.id, criadoEm: FieldValue.serverTimestamp() });
+      if (reservaAnterior?.exists) transacao.delete(indiceAnterior);
+    }
+    const resultado = { talhaoId: referencia.id, concluido: true };
+    transacao.create(registro, { usuarioId: adminUid, tipo, talhaoId: referencia.id, entradaHash: assinatura, concluida: true, criadaEm: FieldValue.serverTimestamp(), resultado });
+    return resultado;
+  });
+}
+
+exports.cadastrarTalhao = operacao((dados, uid) => gravarTalhao("CADASTRAR", dados, uid));
+exports.alterarTalhao = operacao((dados, uid) => gravarTalhao("ALTERAR", dados, uid));
+exports.excluirTalhao = operacao((dados, uid) => gravarTalhao("EXCLUIR", dados, uid));
