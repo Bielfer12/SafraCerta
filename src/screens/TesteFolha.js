@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -299,6 +297,8 @@ export default function TesteFolha() {
             renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`${item.codigo}, ${item.nome}, ${item.propriedadeNome}`} accessibilityState={{ selected: item.id === talhaoSelecionado?.id }} onPress={() => escolherTalhao(item)} style={[styles.opcaoTalhao, item.id === talhaoSelecionado?.id && styles.opcaoTalhaoAtiva]}><View style={styles.textosTalhao}><Text style={styles.nomeOpcaoTalhao}>{item.codigo} — {item.nome}</Text><Text style={styles.descricaoTalhao}>{item.propriedadeNome}</Text>{item.localidade ? <Text style={styles.descricaoTalhao}>{item.localidade}</Text> : null}</View><Ionicons name={item.id === talhaoSelecionado?.id ? "radio-button-on" : "radio-button-off"} size={23} color="#00450D" /></Pressable>}
             ListEmptyComponent={<View style={styles.estadoTalhoes}>{carregandoTalhoes ? <><ActivityIndicator color="#00450D" /><Text style={styles.descricaoTalhao}>Carregando talhões ativos...</Text></> : erroTalhoes ? <><Text accessibilityRole="alert" style={styles.erroTalhoes}>{erroTalhoes}</Text><Pressable accessibilityRole="button" onPress={carregarTalhoes} style={styles.botaoSeletorTexto}><Text style={styles.textoSeletor}>Tentar novamente</Text></Pressable></> : <><Ionicons name="map-outline" size={36} color="#596155" /><Text style={styles.nomeOpcaoTalhao}>{pesquisaTalhao ? "Nenhum talhão encontrado" : "Nenhum talhão ativo disponível"}</Text><Text style={styles.descricaoTalhao}>{pesquisaTalhao ? "Confira o código, nome ou propriedade." : admin ? "Cadastre um talhão ou ative um cadastro existente." : "Solicite o cadastro ou a ativação de um talhão ao administrador."}</Text>{admin && !pesquisaTalhao ? <Pressable accessibilityRole="button" onPress={() => { setSeletorAberto(false); router.push("/talhoes"); }} style={styles.botaoSeletorTexto}><Text style={styles.textoSeletor}>Abrir Talhões</Text></Pressable> : null}</>}</View>}
           />
+        </SafeAreaView>
+      </Modal>
       <Modal visible={fotoAmpliada} animationType="fade" onRequestClose={() => setFotoAmpliada(false)}>
         <SafeAreaView style={styles.fotoTelaCheia}>
           <View style={styles.topoFotoAmpliada}>

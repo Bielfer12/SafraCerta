@@ -50,9 +50,9 @@ export function SessaoProvider({ children }) {
               setMensagem("");
             }
             ultimoTipo = dados?.tipoUsuario;
+            setPerfil(dados ? { ...dados, uid: conta.uid } : null);
+            setConfirmado(!registro.metadata.hasPendingWrites);
           }
-          setPerfil(dados ? { ...dados, uid: conta.uid } : null);
-          setConfirmado(!registro.metadata.fromCache && !registro.metadata.hasPendingWrites);
           setCarregando(false);
         },
         () => {
@@ -65,7 +65,6 @@ export function SessaoProvider({ children }) {
       );
     });
     const evento = AppState.addEventListener("change", async (estado) => {
-      setConfirmado(false);
       if (estado !== "active" || !autenticacao.currentUser) return;
       const conta = autenticacao.currentUser;
       const atual = geracao;
@@ -75,6 +74,8 @@ export function SessaoProvider({ children }) {
         if (atual !== geracao) return;
         const dados = registro.data();
         if (!dados || dados.statusConta !== "ATIVO" || dados.cadastroPendente || dados.exclusaoPendente) {
+          setPerfil(null);
+          setConfirmado(false);
           setMensagem("Sua conta está indisponível. Entre em contato com um administrador.");
           await signOut(autenticacao);
           return;
@@ -84,6 +85,8 @@ export function SessaoProvider({ children }) {
       } catch (erro) {
         if (atual !== geracao) return;
         if (["auth/user-disabled", "auth/user-token-expired", "auth/user-not-found"].includes(erro.code)) {
+          setPerfil(null);
+          setConfirmado(false);
           await signOut(autenticacao);
         }
       }
