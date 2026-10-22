@@ -17,7 +17,7 @@ As funções usam a conta de serviço exclusiva `safracerta-usuarios@safracerta-
 - Matrícula e e-mail de acesso são imutáveis neste módulo. A edição preserva status e campos legados. O titular continua podendo alterar nome e telefone diretamente conforme as regras.
 - As escritas administrativas passam pelas funções. As regras bloqueiam essas escritas diretas do cliente, inclusive de ADMIN. Isso evita contornar a proteção do último administrador ou criar apenas uma parte do cadastro. A leitura administrativa é permitida diretamente pelas regras.
 - A exclusão da própria conta é bloqueada. Exclusão e rebaixamento concorrem por um documento de controle transacional, impedindo remover a última permissão administrativa ativa.
-- A exclusão definitiva remove somente conta Auth, perfil e índice por matrícula. Subcoleções vinculadas bloqueiam a exclusão. Atualmente não existe persistência de diagnósticos nos serviços do aplicativo; se outro módulo introduzir vínculos, sua política deve ser incluída antes de permitir excluir esses usuários.
+- A exclusão definitiva remove somente conta Auth, perfil e índice por matrícula. Subcoleções vinculadas bloqueiam a exclusão. O histórico em `analises` preserva UID e snapshot do autor e não é removido junto da conta, conforme a política do módulo de histórico.
 - A tela lê a coleção ao abrir, atualizar ou concluir uma escrita. Ordena os nomes em português, com desempate por UID. A busca por nome ou matrícula acontece nos dados recebidos, ignora maiúsculas e acentos e preserva zeros. Digitar não dispara novas consultas. A lista usa FlatList; para grandes volumes, revisar o carregamento integral antes da expansão.
 - A leitura preserva os valores originais dos campos administrados. Edição e exclusão comparam esses valores no servidor e recusam dados desatualizados. Campos legados fora desse conjunto são preservados. Não há migração de perfis.
 
@@ -49,7 +49,7 @@ Os testes usam obrigatoriamente `demo-safracerta` e emuladores. Eles recusam exe
 Para usar o aplicativo com emuladores, inicie-os a partir de `functions`:
 
 ```powershell
-npx firebase emulators:start --config ../firebase.json --project demo-safracerta --only auth,firestore,functions
+npx firebase emulators:start --config ../firebase.json --project demo-safracerta --only auth,firestore,functions,storage
 ```
 
 No terminal do Expo, defina `EXPO_PUBLIC_FIREBASE_PROJECT_ID=demo-safracerta`, valores de configuração Firebase de teste e `EXPO_PUBLIC_FIREBASE_EMULATOR_HOST=10.0.2.2` no Android Emulator (`127.0.0.1` na web). Reinicie o Expo. O host dos emuladores só é considerado em desenvolvimento. Os emuladores escutam somente no computador local; para celular físico, ajuste explicitamente os hosts em `firebase.json` e use o IP do computador em uma rede confiável, sem expor essas portas à internet. O conjunto local não importa nem altera usuários de produção.
@@ -125,6 +125,10 @@ npx firebase functions:artifacts:setpolicy --config ../firebase.json --project s
 ```
 
 - Lint, verificação de tipos sem emissão e `git diff --check` aprovados. A interface não foi inspecionada visualmente neste procedimento.
+
+## Histórico de análises — entrega de 22/10/2026
+
+O codebase também publica `iniciarAnalise`, `registrarFalhaEnvioAnalise`, `obterFotoAnalise` e `encerrarAnalisesExpiradas`. O aplicativo consulta `analises` pelo Firestore: Funcionário acessa apenas suas tentativas e Admin acessa todas. A API Python autenticada grava fotos e resultados com o Admin SDK; links temporários protegem as fotos. O tutorial inclui campos, índices, IAM, configuração e validação em [TUTORIAL_HISTORICO_ANALISES.md](../TUTORIAL_HISTORICO_ANALISES.md).
 
 ## Talhões — entrega de 22/10/2026
 

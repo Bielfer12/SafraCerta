@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { calcularMarcacao } from "../utils/localizacaoFolha";
 
-export default function ImagemAnaliseFolha({ uri, resultado, mostrarMarcacoes, style }) {
+export default function ImagemAnaliseFolha({ uri, resultado, mostrarMarcacoes, style, aoFalhar }) {
   const [visor, setVisor] = useState({ largura: 0, altura: 0 });
   const [exibida, setExibida] = useState(false);
   const folhas = resultado?.deteccao_folha?.estado === "concluido" ? resultado.deteccao_folha.itens : [];
@@ -27,6 +27,7 @@ export default function ImagemAnaliseFolha({ uri, resultado, mostrarMarcacoes, s
         contentPosition="center"
         priority="high"
         onDisplay={() => setExibida(true)}
+        onError={aoFalhar}
         style={StyleSheet.absoluteFill}
       />
       {mostrarMarcacoes && exibida ? (

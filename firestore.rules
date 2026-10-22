@@ -33,6 +33,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /analises/{analiseId} {
+      allow read: if podeConsultarTalhoes()
+        && (ehAdminAtivo() || resource.data.usuarioId == request.auth.uid);
+      allow write: if false;
+    }
+
     match /usuarios/{uid} {
       allow get: if pertenceAoUsuario(uid) || ehAdminAtivo();
       allow list: if ehAdminAtivo();

@@ -396,3 +396,6 @@ async function gravarTalhao(tipo, entrada, adminUid) {
 exports.cadastrarTalhao = operacao((dados, uid) => gravarTalhao("CADASTRAR", dados, uid));
 exports.alterarTalhao = operacao((dados, uid) => gravarTalhao("ALTERAR", dados, uid));
 exports.excluirTalhao = operacao((dados, uid) => gravarTalhao("EXCLUIR", dados, uid));
+
+const analises = require("./analises");
+for (const nome of ["iniciarAnalise", "registrarFalhaEnvioAnalise", "obterFotoAnalise", "encerrarAnalisesExpiradas"]) exports[nome] = analises[nome];

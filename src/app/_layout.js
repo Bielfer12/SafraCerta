@@ -27,6 +27,8 @@ function Navegacao() {
       </Stack.Protected>
       <Stack.Protected guard={acessoTalhoes}>
         <Stack.Screen name="talhoes" />
+        <Stack.Screen name="historico" />
+        <Stack.Screen name="analise/[id]" />
       </Stack.Protected>
     </Stack>
   );

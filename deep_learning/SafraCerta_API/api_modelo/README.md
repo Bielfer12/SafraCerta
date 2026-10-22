@@ -6,6 +6,8 @@ O TesteFolha já envia a foto uma vez, mostra a classificação e desenha a caix
 
 ## Instalação no Windows
 
+A versão 3.0.0 exige histórico registrado, autenticação Firebase e acesso de servidor ao Firestore/Storage. Configure as credenciais fora do repositório antes de iniciar, conforme `TUTORIAL_HISTORICO_ANALISES.md`, na raiz. O aplicativo registra a tentativa pela função `iniciarAnalise` e envia `analise_id` e o ID token do usuário junto da foto. A API salva a foto e o resultado no servidor; repetir uma tentativa em andamento/concluída não executa o modelo novamente.
+
 1. Instale Python 3.11 de 64 bits com o launcher `py`.
 2. Abra `instalar_windows.bat` nesta pasta. Ele cria `.venv`, atualiza pip e instala PyTorch 2.11.0/torchvision 0.26.0 para CPU e as dependências. A primeira instalação exige internet.
 3. Abra `iniciar_windows.bat` e espere `Application startup complete`. Mantenha o computador ligado e sem suspensão.
@@ -26,13 +28,13 @@ As configurações ficam em `src/config/api.js`. `EXPO_PUBLIC_API_DOCS_URL` acei
 
 Para um celular físico, use o IPv4 do computador e mantenha ambos na mesma rede. Confira `http://SEU_IP:8000/saude` no navegador do celular. O Firewall deve permitir TCP 8000 na rede privada. `localhost` no celular aponta para o celular, não para o computador.
 
-Esta execução continua sendo para rede local. Para hospedagem pública, configure HTTPS, autenticação e limites no servidor. As fotos são processadas em memória, com `save=False`; a API não grava fotos, recortes ou resultados no Firebase.
+Esta execução continua sendo para rede local. Para hospedagem pública, configure HTTPS e limites no servidor. A API verifica o ID token Firebase e o perfil ativo. O modelo usa `save=False`; a integração de histórico grava a foto recebida no Cloud Storage e o resultado ou falha em `analises`, sem gerar arquivos de predição da Ultralytics.
 
 ## Contrato da versão 2
 
 - `GET /saude`: disponibilidade dos modelos e `versao_resposta: 2`.
 - `GET /classes`: os índices e nomes originais das 16 classes de classificação.
-- `POST /analisar`: multipart com campo `foto`, JPEG/PNG/WebP, até 10 MB e 25 milhões de pixels. Não defina manualmente o Content-Type multipart no aplicativo.
+- `POST /analisar`: cabeçalho `Authorization: Bearer ID_TOKEN`, multipart com `analise_id` da tentativa já registrada e campo `foto`, JPEG/PNG/WebP, até 10 MB e 25 milhões de pixels. Não defina manualmente o Content-Type multipart no aplicativo. Uma solicitação já em processamento retorna HTTP 202 com ID/situação; uma concluída retorna o resultado persistido. Sem token, retorna HTTP 401. O histórico é a fonte de confirmação de salvamento.
 
 Os campos anteriores (`classe_id`, `classe`, `nome_exibicao`, `pontuacao`, `top3`, `modelo` e `aviso`) permanecem. A resposta acrescenta os campos abaixo. **Este exemplo é ilustrativo e não representa uma previsão real:**
 
