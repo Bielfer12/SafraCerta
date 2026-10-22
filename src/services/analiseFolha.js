@@ -2,6 +2,7 @@ import { fetch } from "expo/fetch";
 import { File } from "expo-file-system";
 import { API_BASE_URL } from "../config/api";
 import { analiseValida } from "../utils/localizacaoFolha";
+import { autenticacao } from "./firebase";
 
 const TIMEOUT_MS = 60_000;
 
@@ -46,12 +47,17 @@ const obterMensagemErro = (json, status) => {
   return `A API não conseguiu analisar a foto (erro ${status}).`;
 };
 
-export async function analisarFoto(foto, signal) {
+export async function analisarFoto(foto, analiseId, signal) {
   const dados = new FormData();
   const fotoUri = foto.uri.startsWith("/") ? `file://${foto.uri}` : foto.uri;
   const arquivo = new File(fotoUri);
 
   dados.append("foto", arquivo, foto.nome);
+  dados.append("analise_id", analiseId);
+  const conta = autenticacao.currentUser;
+  if (!conta) throw new ApiError("Entre na sua conta para continuar.", 401);
+  const token = await conta.getIdToken();
+  if (autenticacao.currentUser?.uid !== conta.uid) throw new ApiError("A conta foi alterada. Entre novamente.", 401);
 
   const controller = new AbortController();
   let tempoEsgotado = false;
@@ -68,9 +74,11 @@ export async function analisarFoto(foto, signal) {
     const resposta = await fetch(`${API_BASE_URL}/analisar`, {
       method: "POST",
       body: dados,
+      headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
     });
     const json = await lerResposta(resposta);
+    if (resposta.status === 202 && json?.analiseId === analiseId) return null;
 
     if (!resposta.ok) {
       throw new ApiError(obterMensagemErro(json, resposta.status), resposta.status);

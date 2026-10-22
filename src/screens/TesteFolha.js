@@ -9,7 +9,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { analisarFoto, ApiError, ApiTimeoutError } from "../services/analiseFolha";
 import { obterNomeClassificacao } from "../utils/nomesClassificacoes";
 import { useSessao } from "../context/Sessao";
-import { confirmarTalhaoAtivo, listarTalhoes } from "../services/talhoes";
+import { listarTalhoes } from "../services/talhoes";
+import { acompanharAnalise, analisePendente, buscarAnalise, dataAnalise, novaAnaliseId, operacaoAnalise, SITUACOES_ANALISE } from "../services/historicoAnalises";
 import ImagemAnaliseFolha from "../components/ImagemAnaliseFolha";
 
 const TIPOS_IMAGEM = {
@@ -47,7 +48,7 @@ const formatarPontuacao = (pontuacao) => {
   return porcentagem === null ? "—" : `${porcentagem}%`;
 };
 
-export default function TesteFolha() {
+export default function TesteFolha({ talhaoInicialId, analiseAnteriorId }) {
   const { admin, acessoTalhoes } = useSessao();
   const camera = useRef(null);
   const [permissaoCamera, pedirPermissaoCamera] = useCameraPermissions();
@@ -72,11 +73,16 @@ export default function TesteFolha() {
   const [fotoAmpliada, setFotoAmpliada] = useState(false);
   const solicitacaoAtual = useRef(0);
   const controllerAtual = useRef(null);
+  const operacaoAtual = useRef(null);
+  const cancelarHistorico = useRef(() => {});
+  const [registroAnalise, setRegistroAnalise] = useState(null);
+  const [etapaAnalise, setEtapaAnalise] = useState("");
 
   useEffect(() => {
     return () => {
       solicitacaoAtual.current += 1;
       controllerAtual.current?.abort();
+      cancelarHistorico.current();
     };
   }, []);
 
@@ -88,6 +94,10 @@ export default function TesteFolha() {
       const resposta = await listarTalhoes(true);
       if (atual === consultaTalhoes.current) {
         setTalhoes(resposta);
+        if (!talhaoRef.current && talhaoInicialId && !operacaoAtual.current) {
+          const inicial = resposta.find((item) => item.id === talhaoInicialId);
+          if (inicial) { talhaoRef.current = inicial; setTalhaoSelecionado(inicial); }
+        }
         if (talhaoRef.current && !controllerAtual.current) {
           const selecionado = resposta.find((item) => item.id === talhaoRef.current.id);
           talhaoRef.current = selecionado || null;
@@ -104,7 +114,7 @@ export default function TesteFolha() {
     } finally {
       if (atual === consultaTalhoes.current) setCarregandoTalhoes(false);
     }
-  }, []);
+  }, [talhaoInicialId]);
 
   useFocusEffect(useCallback(() => {
     if (acessoTalhoes) carregarTalhoes();
@@ -121,6 +131,9 @@ export default function TesteFolha() {
   const escolherTalhao = (talhao) => {
     if (controllerAtual.current) return;
     if (talhao.id !== talhaoSelecionado?.id) {
+      cancelarHistorico.current();
+      operacaoAtual.current = null;
+      setRegistroAnalise(null);
       setResultado(null);
       setTalhaoResultado(null);
       setErroAnalise(null);
@@ -131,6 +144,9 @@ export default function TesteFolha() {
   };
 
   const atualizarFoto = (novaFoto) => {
+    cancelarHistorico.current();
+    operacaoAtual.current = null;
+    setRegistroAnalise(null);
     solicitacaoAtual.current += 1;
     controllerAtual.current?.abort();
     controllerAtual.current = null;
@@ -176,6 +192,7 @@ export default function TesteFolha() {
         uri: resultado.uri,
         nome: `folha-${Date.now()}.jpg`,
         tipo: "image/jpeg",
+        origem: "CAMERA",
       });
       setCameraAberta(false);
     } catch {
@@ -198,7 +215,7 @@ export default function TesteFolha() {
       });
 
       if (!resultado.canceled) {
-        atualizarFoto(criarFotoDaGaleria(resultado.assets[0]));
+        atualizarFoto({ ...criarFotoDaGaleria(resultado.assets[0]), origem: "GALERIA" });
       }
     } catch {
       Alert.alert(
@@ -224,31 +241,64 @@ export default function TesteFolha() {
     setErroAnalise(null);
     setResultado(null);
     setTalhaoResultado(null);
+    setEtapaAnalise("Registrando análise…");
+    if (!operacaoAtual.current) operacaoAtual.current = { analiseId: novaAnaliseId(), talhaoId: talhaoSelecionado.id, origemFoto: foto.origem, analiseAnteriorId: analiseAnteriorId || null };
+    const pedido = operacaoAtual.current;
+    const receberRegistro = (registro) => {
+      if (solicitacaoAtual.current !== idSolicitacao) return;
+      setRegistroAnalise(registro);
+      setTalhaoResultado({ ...registro.talhaoSnapshot, id: registro.talhaoId });
+      if (registro.status === "EM_PROCESSAMENTO") setEtapaAnalise("Analisando foto…");
+      if (!analisePendente(registro.status)) {
+        setAnalisando(false);
+        controllerAtual.current = null;
+        operacaoAtual.current = null;
+        if (registro.status === "CONCLUIDA") { setResultado(registro.resultado); setErroAnalise(null); }
+        else setErroAnalise(registro.erro?.mensagem || "Esta tentativa não foi concluída. Inicie outra análise.");
+      }
+    };
 
     try {
-      const talhaoAtual = await confirmarTalhaoAtivo(talhaoSelecionado.id);
+      await operacaoAnalise("iniciarAnalise", pedido);
       if (solicitacaoAtual.current !== idSolicitacao) return;
-      const analise = await analisarFoto(foto, controller.signal);
-
+      const registro = await buscarAnalise(pedido.analiseId);
       if (solicitacaoAtual.current !== idSolicitacao) return;
-      setResultado(analise);
-      setTalhoes((anteriores) => anteriores.map((item) => item.id === talhaoAtual.id ? talhaoAtual : item));
-      setTalhaoSelecionado(talhaoAtual);
-      talhaoRef.current = talhaoAtual;
-      setTalhaoResultado(talhaoAtual);
+      receberRegistro(registro);
+      cancelarHistorico.current();
+      cancelarHistorico.current = acompanharAnalise(pedido.analiseId, receberRegistro, (erro) => {
+        if (solicitacaoAtual.current === idSolicitacao) setErroAnalise(`${erro.message} Consulte o histórico antes de repetir.`);
+      });
+      if (registro.status !== "AGUARDANDO_ENVIO") return;
+      setEtapaAnalise("Enviando foto…");
+      await analisarFoto(foto, pedido.analiseId, controller.signal);
+      if (solicitacaoAtual.current !== idSolicitacao) return;
+      receberRegistro(await buscarAnalise(pedido.analiseId));
     } catch (erro) {
       if (solicitacaoAtual.current !== idSolicitacao || erro?.name === "AbortError") {
         return;
       }
 
-      if (erro?.code === "talhao/indisponivel") {
+      try {
+        const codigo = erro instanceof ApiError ? "API_RECUSOU" : "CONEXAO";
+        if (erro instanceof ApiError || erro instanceof ApiTimeoutError || !erro.code) {
+          await operacaoAnalise("registrarFalhaEnvioAnalise", { analiseId: pedido.analiseId, codigo });
+        }
+        const registro = await buscarAnalise(pedido.analiseId);
+        receberRegistro(registro);
+        if (registro.status === "CONCLUIDA" || !analisePendente(registro.status)) return;
+      } catch {
+        if (solicitacaoAtual.current === idSolicitacao) setErroAnalise("Não foi possível confirmar o histórico. Confira a conexão antes de repetir.");
+      }
+      if (solicitacaoAtual.current !== idSolicitacao) return;
+
+      if (erro?.code === "functions/failed-precondition") {
         setTalhaoSelecionado(null);
         talhaoRef.current = null;
         setErroAnalise(erro.message);
       } else if (erro?.code) {
         setErroAnalise(erro.message);
       } else if (erro instanceof ApiTimeoutError) {
-        setErroAnalise("A análise demorou mais de 60 segundos. Tente novamente.");
+        setErroAnalise("A espera passou de 60 segundos. Consulte o histórico antes de iniciar outra tentativa.");
       } else if (erro instanceof ApiError) {
         setErroAnalise(erro.message);
       } else {
@@ -436,7 +486,7 @@ export default function TesteFolha() {
               <View style={styles.pontoFoco} />
               <Text style={styles.textoEstadoFoco}>
                 {analisando
-                  ? "Analisando foto…"
+                  ? etapaAnalise
                   : foto
                     ? "Imagem pronta para análise"
                     : "Posicione a folha no centro"}
@@ -461,6 +511,18 @@ export default function TesteFolha() {
             <Pressable accessibilityRole="button" accessibilityLabel="Ampliar foto da folha" onPress={() => setFotoAmpliada(true)} style={styles.controleFoto}>
               <Ionicons name="expand-outline" size={20} color="#00450D" />
               <Text style={styles.textoControleFoto}>Ampliar foto</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {registroAnalise ? (
+          <View accessibilityLiveRegion="polite" style={styles.registroHistorico}>
+            <Text style={styles.tituloLocalizacao}>{registroAnalise.status === "CONCLUIDA" ? "Histórico salvo" : SITUACOES_ANALISE[registroAnalise.status]}</Text>
+            <Text style={styles.textoHistorico}>{registroAnalise.talhaoSnapshot?.codigo} — {registroAnalise.talhaoSnapshot?.nome}</Text>
+            <Text style={styles.textoHistorico}>{dataAnalise(registroAnalise.criadoEm)}</Text>
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/analise/[id]", params: { id: registroAnalise.id } })} style={styles.botaoHistorico}>
+              <Ionicons name="time-outline" size={21} color="#1B5E20" />
+              <Text style={styles.linkHistorico}>{analisePendente(registroAnalise.status) ? "Acompanhar no histórico" : "Ver no histórico"}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -630,10 +692,10 @@ export default function TesteFolha() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ disabled: analisando || !talhaoSelecionado, busy: analisando }}
-                disabled={analisando || !talhaoSelecionado}
+                disabled={analisando || !talhaoSelecionado || analisePendente(registroAnalise?.status)}
                 style={[
                   styles.botaoPrincipal,
-                  (analisando || !talhaoSelecionado) && styles.botaoPrincipalDesativado,
+                  (analisando || !talhaoSelecionado || analisePendente(registroAnalise?.status)) && styles.botaoPrincipalDesativado,
                 ]}
                 onPress={iniciarAnalise}
               >
@@ -647,7 +709,9 @@ export default function TesteFolha() {
                 <View style={styles.textosBotaoPrincipal}>
                   <Text style={styles.tituloBotaoPrincipal}>
                     {analisando
-                      ? "Analisando foto…"
+                      ? etapaAnalise
+                      : analisePendente(registroAnalise?.status)
+                        ? "Acompanhe no histórico"
                       : !talhaoSelecionado
                         ? "Selecione um talhão"
                         : erroAnalise
@@ -704,6 +768,10 @@ export default function TesteFolha() {
 }
 
 const styles = StyleSheet.create({
+  registroHistorico: { backgroundColor: "#EDF4E9", borderLeftWidth: 3, borderLeftColor: "#1B5E20", padding: 16, gap: 6, marginVertical: 12 },
+  textoHistorico: { color: "#596155", fontSize: 14, lineHeight: 21 },
+  botaoHistorico: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8 },
+  linkHistorico: { color: "#1B5E20", fontSize: 15, fontWeight: "700" },
   botaoSeletor: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 24, borderCurve: "continuous" },
   buscaTalhao: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, margin: 16, borderWidth: 1, borderColor: "#C3CDBF", backgroundColor: "#FFFFFF", borderRadius: 12, borderCurve: "continuous" },
   inputTalhao: { flex: 1, minHeight: 52, fontSize: 15, color: "#1A1C19" },

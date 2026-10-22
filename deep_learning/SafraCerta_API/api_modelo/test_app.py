@@ -22,6 +22,11 @@ def resultado_caixas(caixas, nome='folha'):
 
 class AnaliseTeste(TestCase):
     def setUp(self):
+        self.historico = patch.multiple(api.historico, configurar=Mock(), assumir=Mock(return_value=None), salvar_foto=Mock(), finalizar=Mock(), falhar=Mock())
+        self.historico.start()
+        self.addCleanup(self.historico.stop)
+        api.app.dependency_overrides[api.historico.autenticar] = lambda: {'uid': 'usuario-teste'}
+        self.addCleanup(api.app.dependency_overrides.clear)
         self.classificador = Mock(task='classify', names={0: 'healthy', 1: 'brown_spot'})
         self.classificador.predict.return_value = [SimpleNamespace(probs=SimpleNamespace(data=torch.tensor([0.8, 0.2])))]
         self.detector = Mock(task='detect', names={0: 'folha'})
@@ -65,7 +70,51 @@ class AnaliseTeste(TestCase):
         return dados.getvalue()
 
     def enviar(self, cliente, conteudo=None):
-        return cliente.post('/analisar', files={'foto': ('folha.jpg', self.foto() if conteudo is None else conteudo, 'image/jpeg')})
+        return cliente.post('/analisar', data={'analise_id': 'analise-teste-123'}, files={'foto': ('folha.jpg', self.foto() if conteudo is None else conteudo, 'image/jpeg')})
+
+    def test_registra_foto_e_resultado_no_servidor(self):
+        with self.cliente() as cliente:
+            self.assertEqual(self.enviar(cliente).status_code, 200)
+            api.historico.salvar_foto.assert_called_once()
+            valores = api.historico.finalizar.call_args.args
+            self.assertEqual(valores[0], 'analise-teste-123')
+            self.assertEqual(valores[2]['classe'], 'healthy')
+            self.assertGreaterEqual(valores[3], 0)
+
+    def test_sem_autenticacao_nao_processa(self):
+        api.app.dependency_overrides.clear()
+        with self.cliente() as cliente:
+            self.assertEqual(self.enviar(cliente).status_code, 401)
+            self.classificador.predict.assert_not_called()
+            api.historico.assumir.assert_not_called()
+
+    def test_reenvio_de_tentativa_em_andamento_nao_repete_modelo(self):
+        api.historico.assumir.return_value = {'status': 'EM_PROCESSAMENTO'}
+        with self.cliente() as cliente:
+            self.assertEqual(self.enviar(cliente).status_code, 202)
+            self.classificador.predict.assert_not_called()
+            api.historico.salvar_foto.assert_not_called()
+
+    def test_falha_de_armazenamento_nao_executa_modelo(self):
+        api.historico.salvar_foto.side_effect = RuntimeError('Falha simulada')
+        with self.cliente() as cliente:
+            self.assertEqual(self.enviar(cliente).status_code, 503)
+            self.classificador.predict.assert_not_called()
+            self.assertEqual(api.historico.falhar.call_args.args[3], 'ARMAZENAMENTO')
+
+    def test_falha_ao_salvar_resultado_nao_retorna_sucesso(self):
+        api.historico.finalizar.side_effect = RuntimeError('Falha simulada')
+        with self.cliente() as cliente:
+            self.assertEqual(self.enviar(cliente).status_code, 503)
+            api.historico.falhar.assert_not_called()
+
+    def test_reenvio_concluido_retorna_resultado_persistido(self):
+        with self.cliente() as cliente:
+            resultado = self.enviar(cliente).json()
+            self.classificador.predict.reset_mock()
+            api.historico.assumir.return_value = {'status': 'CONCLUIDA', 'resultado': resultado}
+            self.assertEqual(self.enviar(cliente).json(), resultado)
+            self.classificador.predict.assert_not_called()
 
     def test_contrato_completo_preserva_classificacao_e_distingue_lesoes_ausentes(self):
         with self.cliente() as cliente:

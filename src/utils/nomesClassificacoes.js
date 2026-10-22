@@ -17,6 +17,8 @@ const NOMES_EM_PORTUGUES = Object.freeze({
   wildfire: "Queima bacteriana",
 });
 
+export const CLASSIFICACOES = Object.entries(NOMES_EM_PORTUGUES).map(([valor, nome]) => ({ valor, nome }));
+
 const formatarNomeTecnico = (valor) =>
   valor
     .replace(/[_-]+/g, " ")

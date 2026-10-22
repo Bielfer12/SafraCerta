@@ -5,14 +5,18 @@ from os import environ
 from pathlib import Path
 from threading import Lock
 from typing import Literal
+from hashlib import file_digest
+from time import monotonic
 import logging
 import warnings
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field
 PIL_OPEN = Image.open  # Preserva o leitor antes dos patches da Ultralytics.
 from ultralytics import YOLO
+import historico
 
 MODELOS_DIR = Path(environ.get('SAFRACERTA_MODELOS_DIR', Path(__file__).resolve().parents[2] / 'modelos')).expanduser().resolve()
 CLASSIFICADOR_PATH = MODELOS_DIR / 'best_classificao.pt'
@@ -26,7 +30,7 @@ class Previsao(BaseModel):
     classe_id: int
     classe: str
     nome_exibicao: str
-    pontuacao: float
+    pontuacao: float = Field(ge=0, le=1, allow_inf_nan=False)
 
 class Marcacao(BaseModel):
     id: int
@@ -67,12 +71,16 @@ async def lifespan(app: FastAPI):
     if app.state.lesoes and (app.state.lesoes.task != 'detect' or set(app.state.lesoes.names.values()) != {'lesao'}):
         raise RuntimeError('O detector de lesões deve ter a classe lesao; não utilize o peso de folhas.')
     app.state.lock = Lock()
+    historico.configurar()
+    with CLASSIFICADOR_PATH.open('rb') as arquivo:
+        assinatura = file_digest(arquivo, 'sha256').hexdigest()
+    app.state.modelo_info = {'nome': 'YOLO26n-cls', 'pesosSha256': assinatura, 'apiVersao': app.version}
     yield
     del app.state.modelo
     del app.state.detector
     del app.state.lesoes
 
-app = FastAPI(title='SafraCerta API', version='2.0.0', lifespan=lifespan)
+app = FastAPI(title='SafraCerta API', version='3.0.0', lifespan=lifespan)
 
 @app.get('/saude')
 def saude(request: Request):
@@ -82,6 +90,7 @@ def saude(request: Request):
         'detector_folha_carregado': True,
         'detector_lesoes_carregado': request.app.state.lesoes is not None,
         'versao_resposta': 2,
+        'historico_obrigatorio': True,
     }
 
 @app.get('/classes')
@@ -143,17 +152,7 @@ def selecionar_folha(marcacoes: list[Marcacao]) -> Marcacao:
             raise HTTPException(422, 'Mais de uma região de folha foi encontrada. Fotografe uma única folha mais de perto.')
     return principal.model_copy(update={'id': 1})
 
-@app.post('/analisar', response_model=Analise)
-def analisar(request: Request, foto: UploadFile = File(...)):
-    try:
-        conteudo = foto.file.read(MAX_BYTES + 1)
-    finally:
-        foto.file.close()
-    if not conteudo:
-        raise HTTPException(400, 'A foto está vazia.')
-    if len(conteudo) > MAX_BYTES:
-        raise HTTPException(413, 'A foto deve ter no máximo 10 MB.')
-    image = abrir_imagem(conteudo)
+def classificar(request: Request, image: Image.Image):
     try:
         with request.app.state.lock:
             folha = selecionar_folha(detectar(request.app.state.detector, image, 20))
@@ -188,5 +187,51 @@ def analisar(request: Request, foto: UploadFile = File(...)):
     except Exception:
         logger.exception('Falha na inferência')
         raise HTTPException(500, 'Não foi possível analisar a imagem.')
+
+
+@app.post('/analisar', response_model=Analise)
+def analisar(request: Request, analise_id: str = Form(...), foto: UploadFile = File(...), conta: dict = Depends(historico.autenticar)):
+    try:
+        conteudo = foto.file.read(MAX_BYTES + 1)
     finally:
-        image.close()
+        foto.file.close()
+    anterior = historico.assumir(analise_id, conta['uid'], conteudo, request.app.state.modelo_info)
+    if anterior:
+        if anterior['status'] == 'CONCLUIDA':
+            return Analise.model_validate(anterior['resultado'])
+        if anterior['status'] == 'EM_PROCESSAMENTO':
+            return JSONResponse(status_code=202, content={'analiseId': analise_id, 'status': 'EM_PROCESSAMENTO'})
+        raise HTTPException(409, 'Esta tentativa já foi encerrada. Consulte o histórico ou inicie outra análise.')
+    inicio = monotonic()
+    image = None
+    etapa = 'VALIDACAO'
+    try:
+        if not conteudo:
+            raise HTTPException(400, 'A foto está vazia.')
+        if len(conteudo) > MAX_BYTES:
+            raise HTTPException(413, 'A foto deve ter no máximo 10 MB.')
+        image = abrir_imagem(conteudo)
+        with PIL_OPEN(BytesIO(conteudo)) as original:
+            formato = original.format
+        etapa = 'ARMAZENAMENTO'
+        historico.salvar_foto(analise_id, conta['uid'], conteudo, formato, image.size)
+        etapa = 'PROCESSAMENTO'
+        resultado = classificar(request, image)
+        etapa = 'SALVAMENTO'
+        historico.finalizar(analise_id, conteudo, resultado.model_dump(), round((monotonic() - inicio) * 1000))
+        return resultado
+    except Exception as erro:
+        mensagem = erro.detail if isinstance(erro, HTTPException) else 'Não foi possível concluir a análise. Consulte o histórico.'
+        if etapa != 'SALVAMENTO':
+            try:
+                codigo = 'FOLHA_NAO_IDENTIFICADA' if isinstance(erro, HTTPException) and erro.status_code == 422 else etapa
+                historico.falhar(analise_id, conteudo, codigo, etapa, mensagem, round((monotonic() - inicio) * 1000))
+            except Exception:
+                logger.exception('Não foi possível confirmar a falha no histórico')
+        if isinstance(erro, HTTPException):
+            raise
+        logger.exception('Falha na análise com histórico')
+        raise HTTPException(503, mensagem)
+    finally:
+        if image:
+            image.close()
