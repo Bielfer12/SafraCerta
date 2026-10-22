@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +12,7 @@ import { analisarFoto, ApiError, ApiTimeoutError } from "../services/analiseFolh
 import { obterNomeClassificacao } from "../utils/nomesClassificacoes";
 import { useSessao } from "../context/Sessao";
 import { confirmarTalhaoAtivo, listarTalhoes } from "../services/talhoes";
+import ImagemAnaliseFolha from "../components/ImagemAnaliseFolha";
 
 const TIPOS_IMAGEM = {
   jpg: "image/jpeg",
@@ -68,6 +70,8 @@ export default function TesteFolha() {
   const [erroTalhoes, setErroTalhoes] = useState("");
   const consultaTalhoes = useRef(0);
   const talhaoRef = useRef(null);
+  const [mostrarMarcacoes, setMostrarMarcacoes] = useState(true);
+  const [fotoAmpliada, setFotoAmpliada] = useState(false);
   const solicitacaoAtual = useRef(0);
   const controllerAtual = useRef(null);
 
@@ -135,6 +139,8 @@ export default function TesteFolha() {
     setAnalisando(false);
     setResultado(null);
     setTalhaoResultado(null);
+    setMostrarMarcacoes(true);
+    setFotoAmpliada(false);
     setErroAnalise(null);
     setFoto(novaFoto);
   };
@@ -264,6 +270,9 @@ export default function TesteFolha() {
   const pesquisaTalhao = buscaTalhao.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const talhoesFiltrados = talhoes.filter((item) => [item.codigo, item.nome, item.propriedadeNome].some((valor) =>
     String(valor).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(pesquisaTalhao)));
+  const folhaLocalizada = resultado?.deteccao_folha?.estado === "concluido";
+  const estadoLesoes = resultado?.deteccao_lesoes?.estado ?? "nao_disponivel";
+  const regioes = estadoLesoes === "concluido" ? resultado.deteccao_lesoes.itens : [];
 
   const outrasPossibilidades = resultado
     ? (Array.isArray(resultado.top3) ? resultado.top3 : []).filter(
@@ -290,6 +299,28 @@ export default function TesteFolha() {
             renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`${item.codigo}, ${item.nome}, ${item.propriedadeNome}`} accessibilityState={{ selected: item.id === talhaoSelecionado?.id }} onPress={() => escolherTalhao(item)} style={[styles.opcaoTalhao, item.id === talhaoSelecionado?.id && styles.opcaoTalhaoAtiva]}><View style={styles.textosTalhao}><Text style={styles.nomeOpcaoTalhao}>{item.codigo} — {item.nome}</Text><Text style={styles.descricaoTalhao}>{item.propriedadeNome}</Text>{item.localidade ? <Text style={styles.descricaoTalhao}>{item.localidade}</Text> : null}</View><Ionicons name={item.id === talhaoSelecionado?.id ? "radio-button-on" : "radio-button-off"} size={23} color="#00450D" /></Pressable>}
             ListEmptyComponent={<View style={styles.estadoTalhoes}>{carregandoTalhoes ? <><ActivityIndicator color="#00450D" /><Text style={styles.descricaoTalhao}>Carregando talhões ativos...</Text></> : erroTalhoes ? <><Text accessibilityRole="alert" style={styles.erroTalhoes}>{erroTalhoes}</Text><Pressable accessibilityRole="button" onPress={carregarTalhoes} style={styles.botaoSeletorTexto}><Text style={styles.textoSeletor}>Tentar novamente</Text></Pressable></> : <><Ionicons name="map-outline" size={36} color="#596155" /><Text style={styles.nomeOpcaoTalhao}>{pesquisaTalhao ? "Nenhum talhão encontrado" : "Nenhum talhão ativo disponível"}</Text><Text style={styles.descricaoTalhao}>{pesquisaTalhao ? "Confira o código, nome ou propriedade." : admin ? "Cadastre um talhão ou ative um cadastro existente." : "Solicite o cadastro ou a ativação de um talhão ao administrador."}</Text>{admin && !pesquisaTalhao ? <Pressable accessibilityRole="button" onPress={() => { setSeletorAberto(false); router.push("/talhoes"); }} style={styles.botaoSeletorTexto}><Text style={styles.textoSeletor}>Abrir Talhões</Text></Pressable> : null}</>}</View>}
           />
+      <Modal visible={fotoAmpliada} animationType="fade" onRequestClose={() => setFotoAmpliada(false)}>
+        <SafeAreaView style={styles.fotoTelaCheia}>
+          <View style={styles.topoFotoAmpliada}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Fechar foto ampliada" onPress={() => setFotoAmpliada(false)} style={styles.fecharFotoAmpliada}>
+              <Ionicons name="arrow-back" size={24} color="#1A1C19" />
+            </Pressable>
+            <Text style={styles.tituloFotoAmpliada}>Foto da folha</Text>
+          </View>
+          {foto && fotoAmpliada ? (
+            <ImagemAnaliseFolha key={foto.uri} uri={foto.uri} resultado={resultado} mostrarMarcacoes={mostrarMarcacoes} style={styles.imagemAmpliada} />
+          ) : null}
+          {folhaLocalizada ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: mostrarMarcacoes }}
+              onPress={() => setMostrarMarcacoes((atual) => !atual)}
+              style={styles.controleFotoAmpliada}
+            >
+              <Ionicons name={mostrarMarcacoes ? "eye-off-outline" : "eye-outline"} size={21} color="#00450D" />
+              <Text style={styles.textoControleFoto}>{mostrarMarcacoes ? "Ocultar marcações" : "Mostrar marcações"}</Text>
+            </Pressable>
+          ) : null}
         </SafeAreaView>
       </Modal>
 
@@ -368,15 +399,11 @@ export default function TesteFolha() {
 
         <View style={styles.visor}>
           {foto ? (
-            <Image
+            <ImagemAnaliseFolha
               key={foto.uri}
-              accessibilityLabel="Folha selecionada para análise"
-              source={foto.uri}
-              cachePolicy="none"
-              contentFit="cover"
-              priority="high"
-              recyclingKey={foto.uri}
-              transition={180}
+              uri={foto.uri}
+              resultado={resultado}
+              mostrarMarcacoes={mostrarMarcacoes}
               style={styles.camera}
             />
           ) : (
@@ -404,19 +431,66 @@ export default function TesteFolha() {
             </>
           ) : null}
 
-          <View style={styles.estadoFoco}>
-            <View style={styles.pontoFoco} />
-            <Text style={styles.textoEstadoFoco}>
-              {resultado
-                ? "Foto analisada"
-                : analisando
+          {!resultado ? (
+            <View style={styles.estadoFoco}>
+              <View style={styles.pontoFoco} />
+              <Text style={styles.textoEstadoFoco}>
+                {analisando
                   ? "Analisando foto…"
                   : foto
                     ? "Imagem pronta para análise"
                     : "Posicione a folha no centro"}
-            </Text>
-          </View>
+              </Text>
+            </View>
+          ) : null}
         </View>
+
+        {foto ? (
+          <View style={styles.controlesFoto}>
+            {folhaLocalizada ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: mostrarMarcacoes }}
+                onPress={() => setMostrarMarcacoes((atual) => !atual)}
+                style={styles.controleFoto}
+              >
+                <Ionicons name={mostrarMarcacoes ? "eye-off-outline" : "eye-outline"} size={20} color="#00450D" />
+                <Text style={styles.textoControleFoto}>{mostrarMarcacoes ? "Ocultar marcações" : "Mostrar marcações"}</Text>
+              </Pressable>
+            ) : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Ampliar foto da folha" onPress={() => setFotoAmpliada(true)} style={styles.controleFoto}>
+              <Ionicons name="expand-outline" size={20} color="#00450D" />
+              <Text style={styles.textoControleFoto}>Ampliar foto</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {resultado ? (
+          <View accessibilityLiveRegion="polite" style={styles.localizacao}>
+            <View style={styles.linhaLocalizacao}>
+              <Ionicons name={folhaLocalizada ? "scan-outline" : "information-circle-outline"} size={21} color="#00450D" />
+              <Text style={styles.tituloLocalizacao}>{folhaLocalizada ? "Folha localizada" : "Localização não disponível"}</Text>
+              {folhaLocalizada ? <Text style={styles.pontuacaoLocalizacao}>{formatarPontuacao(resultado.deteccao_folha.itens[0].pontuacao)}</Text> : null}
+            </View>
+            <Text style={styles.descricaoLocalizacao}>
+              {!folhaLocalizada
+                ? "A API retornou a classificação sem marcações na imagem."
+                : estadoLesoes === "nao_disponivel"
+                  ? "A moldura mostra a folha analisada. A localização das manchas ainda não está disponível."
+                  : estadoLesoes === "erro"
+                    ? "A classificação foi concluída, mas não foi possível localizar as regiões suspeitas."
+                    : regioes.length
+                      ? "As marcações numeradas mostram regiões suspeitas, separadas da classificação da folha."
+                      : "Nenhuma região suspeita localizada. Isso não descarta alterações na folha."}
+            </Text>
+            {estadoLesoes === "erro" ? (
+              <Pressable accessibilityRole="button" onPress={iniciarAnalise} style={[styles.controleFoto, styles.repetirAnalise]}>
+                <Ionicons name="refresh-outline" size={20} color="#00450D" />
+                <Text style={styles.textoControleFoto}>Tentar a análise novamente</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.dicas}>
           <Pressable
@@ -476,6 +550,22 @@ export default function TesteFolha() {
               </View>
             </View>
 
+            {regioes.length > 0 ? (
+              <View style={styles.possibilidades}>
+                <Text style={styles.tituloLocalizacao}>Regiões suspeitas</Text>
+                {regioes.map((regiao) => (
+                  <View key={regiao.id} style={styles.linhaLocalizacao}>
+                    <Text style={styles.numeroRegiao}>{regiao.id}</Text>
+                    <Text style={styles.nomeRegiao}>Região marcada</Text>
+                    <Text style={styles.pontuacaoLocalizacao}>{formatarPontuacao(regiao.pontuacao)}</Text>
+                  </View>
+                ))}
+                {resultado.classe === "healthy" ? (
+                  <Text style={styles.descricaoLocalizacao}>A classificação indicou folha saudável, mas houve regiões suspeitas marcadas. Os modelos apresentaram resultados diferentes.</Text>
+                ) : null}
+              </View>
+            ) : null}
+
             <View style={styles.possibilidades}>
               <Text style={styles.tituloSecaoResultado}>Outras possibilidades</Text>
               {outrasPossibilidades.length > 0 ? (
@@ -506,9 +596,8 @@ export default function TesteFolha() {
 
             <View style={styles.limitesResultado}>
               <Text style={styles.textoLimitesResultado}>
-                O modelo classifica a imagem inteira e não indica a localização da
-                doença nem tratamento. As alternativas são hipóteses, e a pontuação
-                não é garantia de acerto.
+                A classificação é uma hipótese. As pontuações e marcações do modelo
+                não confirmam um diagnóstico nem indicam tratamento.
               </Text>
             </View>
 
@@ -629,6 +718,23 @@ const styles = StyleSheet.create({
   textoSeletor: { color: "#00450D", fontSize: 15, fontWeight: "700" },
   orientacaoTalhao: { color: "#596155", fontSize: 13, lineHeight: 20, marginBottom: 12 },
   contextoTalhao: { gap: 4, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#CDE8C8" },
+  fotoTelaCheia: { flex: 1, backgroundColor: "#FAFAF5" },
+  fecharFotoAmpliada: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 24 },
+  topoFotoAmpliada: { flexDirection: "row", alignItems: "center", padding: 12, gap: 8 },
+  tituloFotoAmpliada: { color: "#1A1C19", fontSize: 18, fontWeight: "700", flex: 1 },
+  imagemAmpliada: { flex: 1 },
+  controlesFoto: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  controleFoto: { minHeight: 48, flexGrow: 1, flexBasis: 140, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 10, backgroundColor: "#EEEEE9", borderRadius: 12, borderCurve: "continuous" },
+  controleFotoAmpliada: { minHeight: 56, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12 },
+  repetirAnalise: { flexGrow: 0, flexBasis: "auto" },
+  textoControleFoto: { color: "#00450D", fontSize: 14, fontWeight: "600", flexShrink: 1 },
+  localizacao: { marginTop: 12, padding: 14, gap: 8, borderLeftWidth: 3, borderLeftColor: "#00450D", backgroundColor: "#F0FAED" },
+  linhaLocalizacao: { flexDirection: "row", alignItems: "center", gap: 10 },
+  tituloLocalizacao: { flex: 1, color: "#00450D", fontSize: 15, fontWeight: "700" },
+  descricaoLocalizacao: { color: "#41493E", fontSize: 14, lineHeight: 21 },
+  pontuacaoLocalizacao: { color: "#00450D", fontSize: 14, fontWeight: "700" },
+  numeroRegiao: { minWidth: 28, textAlign: "center", padding: 4, color: "#FFFFFF", fontSize: 14, fontWeight: "700", backgroundColor: "#B95000", borderRadius: 6, borderCurve: "continuous" },
+  nomeRegiao: { flex: 1, color: "#1A1C19", fontSize: 14 },
   container: { flex: 1, backgroundColor: "#FAFAF5" },
   cameraTelaCheia: { flex: 1, backgroundColor: "#151713" },
   cameraInterface: {
