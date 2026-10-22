@@ -10,7 +10,7 @@ import { useSessao } from "../context/Sessao";
 
 export default function Home() {
   const [menuAberto, setMenuAberto] = useState(false);
-  const { perfil, admin, mensagem } = useSessao();
+  const { perfil, admin, acessoTalhoes, mensagem } = useSessao();
   const email = autenticacao.currentUser?.email || "Usuário";
   const inicial = email.charAt(0).toUpperCase();
 
@@ -68,6 +68,12 @@ export default function Home() {
               <Ionicons name="leaf-outline" size={22} color="#FFFFFF" />
               <Text style={styles.textoItemMenu}>Teste folha</Text>
             </TouchableOpacity>
+            {acessoTalhoes ? (
+              <TouchableOpacity accessibilityLabel="Talhões" style={[styles.itemMenu, styles.itemMenuSecundario]} onPress={() => { setMenuAberto(false); router.push("/talhoes"); }}>
+                <Ionicons name="map-outline" size={22} color="#FFFFFF" />
+                <Text style={styles.textoItemMenu}>Talhões</Text>
+              </TouchableOpacity>
+            ) : null}
             {admin ? (
               <TouchableOpacity accessibilityLabel="Usuários" style={[styles.itemMenu, styles.itemMenuSecundario]} onPress={() => { setMenuAberto(false); router.push("/usuarios"); }}>
                 <Ionicons name="people-outline" size={22} color="#FFFFFF" />

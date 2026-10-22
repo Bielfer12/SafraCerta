@@ -125,3 +125,13 @@ npx firebase functions:artifacts:setpolicy --config ../firebase.json --project s
 ```
 
 - Lint, verificação de tipos sem emissão e `git diff --check` aprovados. A interface não foi inspecionada visualmente neste procedimento.
+
+## Talhões — entrega de 22/10/2026
+
+O mesmo codebase também contém `cadastrarTalhao`, `alterarTalhao` e `excluirTalhao`. As consultas são feitas diretamente em `talhoes` pelo SDK Firestore, para perfis ativos ADMIN e FUNCIONARIO; apenas Admin pode gravar pelas funções. Funcionário tem os controles administrativos visíveis e desativados na interface.
+
+As transações mantêm `talhoes`, `_talhoes_por_codigo` e `_operacoes_talhoes` consistentes. Código é único, a versão numérica protege edições concorrentes e análises em `analises.talhaoId` bloqueiam exclusão, permitindo inativação. Os recibos de operação permanecem após excluir um talhão para impedir reaplicar solicitações antigas.
+
+`talhoes-validacao.js` é um módulo puro compartilhado com o aplicativo; não contém credenciais ou dependências administrativas. A criação de talhões não cria contas Auth. O guia completo de uso, campos e coleções está em [TUTORIAL_TALHOES.md](../TUTORIAL_TALHOES.md).
+
+Validação: 11 testes novos de Talhões e os 19 de Usuários passaram nos emuladores, assim como lint, tipos e bundle Android. As seis funções e as regras foram publicadas com sucesso em `safracerta-ee9ce`; as três novas funções retornaram HTTP 401 UNAUTHENTICATED em chamadas sem sessão. Não foram criados dados fictícios em produção. A conferência visual ficou pendente porque a revisão automática bloqueou a abertura do app no emulador, sem motivo específico informado.

@@ -1,13 +1,17 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { analisarFoto, ApiError, ApiTimeoutError } from "../services/analiseFolha";
 import { obterNomeClassificacao } from "../utils/nomesClassificacoes";
+import { useSessao } from "../context/Sessao";
+import { confirmarTalhaoAtivo, listarTalhoes } from "../services/talhoes";
 import ImagemAnaliseFolha from "../components/ImagemAnaliseFolha";
 
 const TIPOS_IMAGEM = {
@@ -46,6 +50,7 @@ const formatarPontuacao = (pontuacao) => {
 };
 
 export default function TesteFolha() {
+  const { admin, acessoTalhoes } = useSessao();
   const camera = useRef(null);
   const [permissaoCamera, pedirPermissaoCamera] = useCameraPermissions();
   const [foto, setFoto] = useState(null);
@@ -56,6 +61,15 @@ export default function TesteFolha() {
   const [resultado, setResultado] = useState(null);
   const [erroAnalise, setErroAnalise] = useState(null);
   const [analisando, setAnalisando] = useState(false);
+  const [talhoes, setTalhoes] = useState([]);
+  const [talhaoSelecionado, setTalhaoSelecionado] = useState(null);
+  const [talhaoResultado, setTalhaoResultado] = useState(null);
+  const [seletorAberto, setSeletorAberto] = useState(false);
+  const [buscaTalhao, setBuscaTalhao] = useState("");
+  const [carregandoTalhoes, setCarregandoTalhoes] = useState(true);
+  const [erroTalhoes, setErroTalhoes] = useState("");
+  const consultaTalhoes = useRef(0);
+  const talhaoRef = useRef(null);
   const [mostrarMarcacoes, setMostrarMarcacoes] = useState(true);
   const [fotoAmpliada, setFotoAmpliada] = useState(false);
   const solicitacaoAtual = useRef(0);
@@ -68,12 +82,63 @@ export default function TesteFolha() {
     };
   }, []);
 
+  const carregarTalhoes = useCallback(async () => {
+    const atual = ++consultaTalhoes.current;
+    setCarregandoTalhoes(true);
+    setErroTalhoes("");
+    try {
+      const resposta = await listarTalhoes(true);
+      if (atual === consultaTalhoes.current) {
+        setTalhoes(resposta);
+        if (talhaoRef.current && !controllerAtual.current) {
+          const selecionado = resposta.find((item) => item.id === talhaoRef.current.id);
+          talhaoRef.current = selecionado || null;
+          setTalhaoSelecionado(selecionado || null);
+          if (!selecionado) {
+            setResultado(null);
+            setTalhaoResultado(null);
+            setErroAnalise("O talhão selecionado não está mais ativo. Selecione outro talhão; a foto foi mantida.");
+          }
+        }
+      }
+    } catch (erro) {
+      if (atual === consultaTalhoes.current) { setTalhoes([]); setErroTalhoes(erro.message); }
+    } finally {
+      if (atual === consultaTalhoes.current) setCarregandoTalhoes(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    if (acessoTalhoes) carregarTalhoes();
+    return () => { consultaTalhoes.current += 1; };
+  }, [acessoTalhoes, carregarTalhoes]));
+
+  const abrirSeletor = () => {
+    if (controllerAtual.current) return;
+    setBuscaTalhao("");
+    setSeletorAberto(true);
+    carregarTalhoes();
+  };
+
+  const escolherTalhao = (talhao) => {
+    if (controllerAtual.current) return;
+    if (talhao.id !== talhaoSelecionado?.id) {
+      setResultado(null);
+      setTalhaoResultado(null);
+      setErroAnalise(null);
+    }
+    setTalhaoSelecionado(talhao);
+    talhaoRef.current = talhao;
+    setSeletorAberto(false);
+  };
+
   const atualizarFoto = (novaFoto) => {
     solicitacaoAtual.current += 1;
     controllerAtual.current?.abort();
     controllerAtual.current = null;
     setAnalisando(false);
     setResultado(null);
+    setTalhaoResultado(null);
     setMostrarMarcacoes(true);
     setFotoAmpliada(false);
     setErroAnalise(null);
@@ -147,6 +212,11 @@ export default function TesteFolha() {
 
   const iniciarAnalise = async () => {
     if (!foto || controllerAtual.current) return;
+    if (!talhaoSelecionado) {
+      setErroAnalise("Selecione um talhão ativo antes de analisar a foto.");
+      abrirSeletor();
+      return;
+    }
 
     const idSolicitacao = solicitacaoAtual.current + 1;
     solicitacaoAtual.current = idSolicitacao;
@@ -155,18 +225,31 @@ export default function TesteFolha() {
     setAnalisando(true);
     setErroAnalise(null);
     setResultado(null);
+    setTalhaoResultado(null);
 
     try {
+      const talhaoAtual = await confirmarTalhaoAtivo(talhaoSelecionado.id);
+      if (solicitacaoAtual.current !== idSolicitacao) return;
       const analise = await analisarFoto(foto, controller.signal);
 
       if (solicitacaoAtual.current !== idSolicitacao) return;
       setResultado(analise);
+      setTalhoes((anteriores) => anteriores.map((item) => item.id === talhaoAtual.id ? talhaoAtual : item));
+      setTalhaoSelecionado(talhaoAtual);
+      talhaoRef.current = talhaoAtual;
+      setTalhaoResultado(talhaoAtual);
     } catch (erro) {
       if (solicitacaoAtual.current !== idSolicitacao || erro?.name === "AbortError") {
         return;
       }
 
-      if (erro instanceof ApiTimeoutError) {
+      if (erro?.code === "talhao/indisponivel") {
+        setTalhaoSelecionado(null);
+        talhaoRef.current = null;
+        setErroAnalise(erro.message);
+      } else if (erro?.code) {
+        setErroAnalise(erro.message);
+      } else if (erro instanceof ApiTimeoutError) {
         setErroAnalise("A análise demorou mais de 60 segundos. Tente novamente.");
       } else if (erro instanceof ApiError) {
         setErroAnalise(erro.message);
@@ -184,6 +267,9 @@ export default function TesteFolha() {
   };
 
   const analisarOutraFoto = () => atualizarFoto(null);
+  const pesquisaTalhao = buscaTalhao.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const talhoesFiltrados = talhoes.filter((item) => [item.codigo, item.nome, item.propriedadeNome].some((valor) =>
+    String(valor).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(pesquisaTalhao)));
   const folhaLocalizada = resultado?.deteccao_folha?.estado === "concluido";
   const estadoLesoes = resultado?.deteccao_lesoes?.estado ?? "nao_disponivel";
   const regioes = estadoLesoes === "concluido" ? resultado.deteccao_lesoes.itens : [];
@@ -201,6 +287,18 @@ export default function TesteFolha() {
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <StatusBar style="dark" />
 
+      <Modal visible={seletorAberto} animationType="slide" onRequestClose={() => setSeletorAberto(false)}>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.cabecalho}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Fechar seleção de talhão" onPress={() => setSeletorAberto(false)} style={styles.botaoSeletor}><Ionicons name="arrow-back" size={25} color="#1A1C19" /></Pressable>
+            <Text accessibilityRole="header" style={styles.tituloCabecalho}>Selecionar talhão</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Atualizar talhões ativos" disabled={carregandoTalhoes} onPress={carregarTalhoes} style={styles.botaoSeletor}><Ionicons name="refresh" size={23} color="#00450D" /></Pressable>
+          </View>
+          <View style={styles.buscaTalhao}><Ionicons name="search-outline" size={21} color="#596155" /><TextInput accessibilityLabel="Buscar talhão por código, nome ou propriedade" value={buscaTalhao} onChangeText={setBuscaTalhao} placeholder="Código, nome ou propriedade" placeholderTextColor="#596155" autoCorrect={false} style={styles.inputTalhao} /></View>
+          <FlatList data={carregandoTalhoes || erroTalhoes ? [] : talhoesFiltrados} keyExtractor={(item) => item.id} contentContainerStyle={styles.listaTalhoes} keyboardShouldPersistTaps="handled" refreshing={carregandoTalhoes} onRefresh={carregarTalhoes}
+            renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`${item.codigo}, ${item.nome}, ${item.propriedadeNome}`} accessibilityState={{ selected: item.id === talhaoSelecionado?.id }} onPress={() => escolherTalhao(item)} style={[styles.opcaoTalhao, item.id === talhaoSelecionado?.id && styles.opcaoTalhaoAtiva]}><View style={styles.textosTalhao}><Text style={styles.nomeOpcaoTalhao}>{item.codigo} — {item.nome}</Text><Text style={styles.descricaoTalhao}>{item.propriedadeNome}</Text>{item.localidade ? <Text style={styles.descricaoTalhao}>{item.localidade}</Text> : null}</View><Ionicons name={item.id === talhaoSelecionado?.id ? "radio-button-on" : "radio-button-off"} size={23} color="#00450D" /></Pressable>}
+            ListEmptyComponent={<View style={styles.estadoTalhoes}>{carregandoTalhoes ? <><ActivityIndicator color="#00450D" /><Text style={styles.descricaoTalhao}>Carregando talhões ativos...</Text></> : erroTalhoes ? <><Text accessibilityRole="alert" style={styles.erroTalhoes}>{erroTalhoes}</Text><Pressable accessibilityRole="button" onPress={carregarTalhoes} style={styles.botaoSeletorTexto}><Text style={styles.textoSeletor}>Tentar novamente</Text></Pressable></> : <><Ionicons name="map-outline" size={36} color="#596155" /><Text style={styles.nomeOpcaoTalhao}>{pesquisaTalhao ? "Nenhum talhão encontrado" : "Nenhum talhão ativo disponível"}</Text><Text style={styles.descricaoTalhao}>{pesquisaTalhao ? "Confira o código, nome ou propriedade." : admin ? "Cadastre um talhão ou ative um cadastro existente." : "Solicite o cadastro ou a ativação de um talhão ao administrador."}</Text>{admin && !pesquisaTalhao ? <Pressable accessibilityRole="button" onPress={() => { setSeletorAberto(false); router.push("/talhoes"); }} style={styles.botaoSeletorTexto}><Text style={styles.textoSeletor}>Abrir Talhões</Text></Pressable> : null}</>}</View>}
+          />
       <Modal visible={fotoAmpliada} animationType="fade" onRequestClose={() => setFotoAmpliada(false)}>
         <SafeAreaView style={styles.fotoTelaCheia}>
           <View style={styles.topoFotoAmpliada}>
@@ -286,16 +384,18 @@ export default function TesteFolha() {
         contentContainerStyle={styles.conteudo}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable style={styles.talhao}>
+        <Pressable accessibilityRole="button" accessibilityLabel={talhaoSelecionado ? `Trocar talhão, selecionado ${talhaoSelecionado.codigo}, ${talhaoSelecionado.nome}` : "Selecionar um talhão ativo"} accessibilityState={{ disabled: analisando }} disabled={analisando} onPress={abrirSeletor} style={styles.talhao}>
           <View style={styles.iconeTalhao}>
             <Ionicons name="map" size={20} color="#00450D" />
           </View>
           <View style={styles.textosTalhao}>
-            <Text style={styles.rotuloTalhao}>Talhão selecionado</Text>
-            <Text style={styles.nomeTalhao}>Talhão 02 • Capivaras do Meio</Text>
+            <Text style={styles.rotuloTalhao}>{talhaoSelecionado ? "Talhão selecionado" : "Talhão da análise"}</Text>
+            <Text style={styles.nomeTalhao}>{talhaoSelecionado ? `${talhaoSelecionado.codigo} — ${talhaoSelecionado.nome}` : "Selecione um talhão"}</Text>
+            {talhaoSelecionado ? <Text style={styles.descricaoTalhao}>{talhaoSelecionado.propriedadeNome}</Text> : null}
           </View>
           <Ionicons name="chevron-down" size={20} color="#41493E" />
         </Pressable>
+        {!talhaoSelecionado ? <Text style={styles.orientacaoTalhao}>{carregandoTalhoes ? "Consultando talhões ativos..." : erroTalhoes ? erroTalhoes : "Selecione um talhão ativo para analisar. Você já pode fotografar ou escolher a imagem."}</Text> : null}
 
         <View style={styles.visor}>
           {foto ? (
@@ -429,6 +529,7 @@ export default function TesteFolha() {
         {resultado ? (
           <>
             <View style={styles.resultadoPrincipal}>
+              {talhaoResultado ? <View style={styles.contextoTalhao}><Text style={styles.nomeOpcaoTalhao}>{talhaoResultado.codigo} — {talhaoResultado.nome}</Text><Text style={styles.descricaoTalhao}>{talhaoResultado.propriedadeNome}</Text></View> : null}
               <View style={styles.cabecalhoResultado}>
                 <View style={styles.iconeResultado}>
                   <Ionicons name="leaf" size={22} color="#00450D" />
@@ -528,11 +629,11 @@ export default function TesteFolha() {
             {foto ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityState={{ disabled: analisando, busy: analisando }}
-                disabled={analisando}
+                accessibilityState={{ disabled: analisando || !talhaoSelecionado, busy: analisando }}
+                disabled={analisando || !talhaoSelecionado}
                 style={[
                   styles.botaoPrincipal,
-                  analisando && styles.botaoPrincipalDesativado,
+                  (analisando || !talhaoSelecionado) && styles.botaoPrincipalDesativado,
                 ]}
                 onPress={iniciarAnalise}
               >
@@ -547,7 +648,9 @@ export default function TesteFolha() {
                   <Text style={styles.tituloBotaoPrincipal}>
                     {analisando
                       ? "Analisando foto…"
-                      : erroAnalise
+                      : !talhaoSelecionado
+                        ? "Selecione um talhão"
+                        : erroAnalise
                         ? "Tentar novamente"
                         : "Escanear folha agora"}
                   </Text>
@@ -601,6 +704,20 @@ export default function TesteFolha() {
 }
 
 const styles = StyleSheet.create({
+  botaoSeletor: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 24, borderCurve: "continuous" },
+  buscaTalhao: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, margin: 16, borderWidth: 1, borderColor: "#C3CDBF", backgroundColor: "#FFFFFF", borderRadius: 12, borderCurve: "continuous" },
+  inputTalhao: { flex: 1, minHeight: 52, fontSize: 15, color: "#1A1C19" },
+  listaTalhoes: { paddingHorizontal: 16, paddingBottom: 30, gap: 10 },
+  opcaoTalhao: { minHeight: 80, flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderWidth: 1, borderColor: "#DDE5D8", backgroundColor: "#FFFFFF", borderRadius: 16, borderCurve: "continuous" },
+  opcaoTalhaoAtiva: { borderColor: "#00450D", backgroundColor: "#E4F4DE" },
+  nomeOpcaoTalhao: { color: "#1A1C19", fontSize: 16, fontWeight: "700", lineHeight: 22 },
+  descricaoTalhao: { color: "#596155", fontSize: 13, lineHeight: 20 },
+  estadoTalhoes: { alignItems: "center", gap: 12, paddingVertical: 32 },
+  erroTalhoes: { color: "#A01818", fontSize: 14, lineHeight: 21 },
+  botaoSeletorTexto: { minHeight: 48, padding: 12, justifyContent: "center", alignItems: "center" },
+  textoSeletor: { color: "#00450D", fontSize: 15, fontWeight: "700" },
+  orientacaoTalhao: { color: "#596155", fontSize: 13, lineHeight: 20, marginBottom: 12 },
+  contextoTalhao: { gap: 4, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#CDE8C8" },
   fotoTelaCheia: { flex: 1, backgroundColor: "#FAFAF5" },
   fecharFotoAmpliada: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 24 },
   topoFotoAmpliada: { flexDirection: "row", alignItems: "center", padding: 12, gap: 8 },

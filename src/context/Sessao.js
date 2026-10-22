@@ -102,8 +102,11 @@ export function SessaoProvider({ children }) {
     perfil?.statusConta === "ATIVO" &&
     !perfil?.exclusaoPendente &&
     !perfil?.cadastroPendente;
+  const acessoTalhoes = confirmado
+    && ["ADMIN", "FUNCIONARIO"].includes(perfil?.tipoUsuario)
+    && perfil?.statusConta === "ATIVO" && !perfil?.exclusaoPendente && !perfil?.cadastroPendente;
   return (
-    <SessaoContext.Provider value={{ usuario, perfil, carregando, admin, mensagem }}>
+    <SessaoContext.Provider value={{ usuario, perfil, carregando, admin, acessoTalhoes, mensagem }}>
       {children}
     </SessaoContext.Provider>
   );

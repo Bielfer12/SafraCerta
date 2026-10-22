@@ -4,7 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessaoProvider, useSessao } from "../context/Sessao";
 
 function Navegacao() {
-  const { usuario, carregando, admin } = useSessao();
+  const { usuario, carregando, admin, acessoTalhoes } = useSessao();
   if (carregando) {
     return (
       <View style={styles.carregando}>
@@ -24,6 +24,9 @@ function Navegacao() {
       </Stack.Protected>
       <Stack.Protected guard={admin}>
         <Stack.Screen name="usuarios" />
+      </Stack.Protected>
+      <Stack.Protected guard={acessoTalhoes}>
+        <Stack.Screen name="talhoes" />
       </Stack.Protected>
     </Stack>
   );
