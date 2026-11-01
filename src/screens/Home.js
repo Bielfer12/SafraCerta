@@ -86,6 +86,12 @@ export default function Home() {
                 <Text style={styles.textoItemMenu}>Histórico</Text>
               </TouchableOpacity>
             ) : null}
+            {acessoTalhoes ? (
+              <TouchableOpacity accessibilityLabel="Dashboard" style={[styles.itemMenu, styles.itemMenuSecundario]} onPress={() => { setMenuAberto(false); router.push("/dashboard"); }}>
+                <Ionicons name="stats-chart-outline" size={22} color="#FFFFFF" />
+                <Text style={styles.textoItemMenu}>Dashboard</Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity accessibilityLabel="Sair da conta" style={[styles.itemMenu, styles.itemMenuSecundario]} onPress={() => signOut(autenticacao)}>
               <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
               <Text style={styles.textoItemMenu}>Sair da conta</Text>

@@ -32,7 +32,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test:folha": "node --test tests/localizacaoFolha.test.mjs"
+    "test:folha": "node --test tests/localizacaoFolha.test.mjs",
+    "test:dashboard": "node --test tests/dashboardAnalises.test.mjs"
   },
   "private": true,
   "devDependencies": {
