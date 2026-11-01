@@ -108,3 +108,39 @@ export async function listarAnalises(filtros, admin, pagina = null) {
     throw traduzirErro(erro);
   }
 }
+
+// Quantidade máxima de análises lidas para montar o dashboard. Limita leituras
+// do Firestore e o volume baixado em conexões instáveis. Quando há mais registros
+// no filtro, `truncado` fica verdadeiro e a tela avisa.
+export const LIMITE_DASHBOARD = 500;
+
+// Usa apenas filtros que já têm índice em firestore.indexes.json:
+// usuarioId/talhaoId (opcionais) + criadoEm. Funcionário sempre consulta só o
+// próprio usuarioId, como exigem as regras do Firestore.
+export async function listarAnalisesPainel(filtros, admin) {
+  const uid = autenticacao.currentUser?.uid;
+  if (!uid) throw traduzirErro({ code: "unauthenticated" });
+  const restricoes = [];
+  if (!admin || filtros.usuarioId)
+    restricoes.push(where("usuarioId", "==", admin ? filtros.usuarioId : uid));
+  if (filtros.talhaoId)
+    restricoes.push(where("talhaoId", "==", filtros.talhaoId));
+  if (filtros.inicio)
+    restricoes.push(
+      where("criadoEm", ">=", Timestamp.fromDate(filtros.inicio)),
+    );
+  restricoes.push(orderBy("criadoEm", "desc"), limit(LIMITE_DASHBOARD + 1));
+  try {
+    const resposta = await getDocsFromServer(
+      query(collection(banco, "analises"), ...restricoes),
+    );
+    return {
+      itens: resposta.docs
+        .slice(0, LIMITE_DASHBOARD)
+        .map((registro) => ({ ...registro.data(), id: registro.id })),
+      truncado: resposta.size > LIMITE_DASHBOARD,
+    };
+  } catch (erro) {
+    throw traduzirErro(erro);
+  }
+}
