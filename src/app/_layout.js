@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessaoProvider, useSessao } from "../context/Sessao";
+import MenuFlutuante from "../components/MenuFlutuante";
 
 function Navegacao() {
   const { usuario, carregando, admin, acessoTalhoes } = useSessao();
@@ -14,24 +15,27 @@ function Navegacao() {
     );
   }
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!usuario}>
-        <Stack.Screen name="index" />
-      </Stack.Protected>
-      <Stack.Protected guard={Boolean(usuario)}>
-        <Stack.Screen name="home" />
-        <Stack.Screen name="teste-folha" />
-      </Stack.Protected>
-      <Stack.Protected guard={admin}>
-        <Stack.Screen name="usuarios" />
-      </Stack.Protected>
-      <Stack.Protected guard={acessoTalhoes}>
-        <Stack.Screen name="talhoes" />
-        <Stack.Screen name="historico" />
-        <Stack.Screen name="dashboard" />
-        <Stack.Screen name="analise/[id]" />
-      </Stack.Protected>
-    </Stack>
+    <View style={styles.raiz}>
+      <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+        <Stack.Protected guard={!usuario}>
+          <Stack.Screen name="index" />
+        </Stack.Protected>
+        <Stack.Protected guard={Boolean(usuario)}>
+          <Stack.Screen name="home" />
+          <Stack.Screen name="teste-folha" />
+        </Stack.Protected>
+        <Stack.Protected guard={admin}>
+          <Stack.Screen name="usuarios" />
+          <Stack.Screen name="dashboard" />
+        </Stack.Protected>
+        <Stack.Protected guard={acessoTalhoes}>
+          <Stack.Screen name="talhoes" />
+          <Stack.Screen name="historico" />
+          <Stack.Screen name="analise/[id]" options={{ animation: "default" }} />
+        </Stack.Protected>
+      </Stack>
+      {usuario ? <MenuFlutuante /> : null}
+    </View>
   );
 }
 
@@ -46,6 +50,7 @@ export default function Layout() {
 }
 
 const styles = StyleSheet.create({
+  raiz: { flex: 1 },
   carregando: {
     flex: 1,
     alignItems: "center",

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useSessao } from "../context/Sessao";
+import CabecalhoApp from "../components/CabecalhoApp";
 import { autenticacao } from "../services/firebase";
 import { executarOperacaoUsuarios, listarUsuarios, novaOperacaoCadastro } from "../services/usuarios";
 import { normalizarMatricula } from "../services/autenticacao";
@@ -282,20 +282,7 @@ export default function Usuarios() {
   return (
     <SafeAreaView style={styles.tela}>
       <StatusBar style="dark" />
-      <View style={styles.cabecalho}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar para Home"
-          onPress={() => router.replace("/home")}
-          style={styles.botaoIcone}
-        >
-          <Ionicons name="arrow-back" size={25} color="#FFFFFF" />
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.tituloCabecalho}>
-          Usuários
-        </Text>
-        <Ionicons name="people-outline" size={25} color="#FFFFFF" />
-      </View>
+      <CabecalhoApp titulo="Usuários" />
 
       <View style={styles.topoLista}>
         <View style={styles.busca}>
@@ -781,7 +768,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingRight: 12,
   },
-  conteudoLista: { paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 },
+  conteudoLista: { paddingHorizontal: 20, paddingBottom: 120, flexGrow: 1 },
   linhaUsuario: {
     flexDirection: "row",
     alignItems: "center",

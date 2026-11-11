@@ -5,6 +5,7 @@ import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSessao } from "../context/Sessao";
+import CabecalhoApp from "../components/CabecalhoApp";
 import { listarAnalises, SITUACOES_ANALISE } from "../services/historicoAnalises";
 import { listarTalhoes } from "../services/talhoes";
 import { listarUsuarios } from "../services/usuarios";
@@ -248,26 +249,8 @@ export default function Historico() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <StatusBar style="light" />
-      <View style={styles.cabecalho}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          style={styles.toque}
-        >
-          <Ionicons name="arrow-back" size={25} color="#FFFFFF" />
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.titulo}>
-          Histórico
-        </Text>
-        <Pressable
-          accessibilityLabel="Atualizar histórico"
-          onPress={() => consultar()}
-          style={styles.toque}
-        >
-          <Ionicons name="refresh" size={23} color="#FFFFFF" />
-        </Pressable>
-      </View>
+      <StatusBar style="dark" />
+      <CabecalhoApp titulo="Histórico" iconeAcao="refresh" rotuloAcao="Atualizar histórico" aoPressionarAcao={() => consultar()} />
       <FlatList
         data={itens}
         keyExtractor={(item) => item.id}
@@ -465,7 +448,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   titulo: { flex: 1, fontSize: 22, fontWeight: "700", color: "#FFFFFF" },
-  lista: { padding: 16, paddingBottom: 32, flexGrow: 1 },
+  lista: { padding: 16, paddingBottom: 120, flexGrow: 1 },
   introducao: {
     color: "#596155",
     fontSize: 15,
