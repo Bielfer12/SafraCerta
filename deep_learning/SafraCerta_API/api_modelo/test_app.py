@@ -173,6 +173,8 @@ class AnaliseTeste(TestCase):
             self.assertEqual(dados['classe'], 'healthy')
             self.assertEqual(dados['deteccao_lesoes']['estado'], 'concluido')
             self.assertEqual(dados['deteccao_lesoes']['itens'][0]['classe'], 'lesao')
+            self.assertEqual(self.detector.predict.call_args.kwargs['conf'], 0.25)
+            self.assertEqual(self.lesoes.predict.call_args.kwargs['conf'], 0.8)
             self.lesoes.predict.return_value = [resultado_caixas([], 'lesao')]
             self.assertEqual(self.enviar(cliente).json()['deteccao_lesoes'], {'estado': 'concluido', 'itens': []})
 
