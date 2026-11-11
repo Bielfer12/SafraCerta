@@ -57,17 +57,19 @@ O detector roda a 640 pixels, com pontuação mínima 0,25. Na primeira entrega,
 
 Erros: 400 arquivo vazio/inválido; 413 limites excedidos; 415 formato não aceito; 422 foto ausente, nenhuma folha localizada ou alvo ambíguo; 500 falha técnica de inferência. Sem folha, a API não executa o classificador. O app descarta respostas de uma foto anterior e permite tentar novamente.
 
-## Detector de lesões: integração preparada
+## Detector de lesões: piloto experimental ativo
 
-Não existe peso de lesões no material fornecido. Para a segunda etapa, preparar imagens originais com regiões anotadas e revisadas, treinar e validar um detector com a classe única `lesao`, preservando os pesos atuais. O planejamento completo está em `PLANEJAMENTO_DETECCAO_FOLHA.md`, na raiz.
+O peso `deep_learning/modelos/best_lesoes.pt` vem do piloto `deep_learning/resultados/SafraCerta_piloto_lesoes_20261106_001012.zip`, treinado no notebook `deep_learning/notebooks/SafraCerta_treinamento_deteccao_lesoes.ipynb` com a classe única `lesao`. Ele roda na mesma API, depois do detector de folha e do classificador, a 640 pixels e com pontuação mínima 0,80, que foi o valor escolhido na validação do piloto. O detector de folha continua em 0,25.
 
-Depois da validação, pode-se configurar explicitamente o novo peso antes de iniciar:
+O piloto usou 20 imagens de 384 x 256 pixels. No teste exploratório de 4 fotos, acertou 7 regiões, marcou 7 falsas e deixou de encontrar 9. Ele não demonstra confiabilidade para uso em campo e deve ser apresentado como experimental.
+
+O peso é ligado pela variável abaixo, que no serviço do Windows está definida em `../SafraCertaServico.xml`:
 
 ```powershell
 $env:SAFRACERTA_MODELO_LESOES = 'C:\SafraCerta\deep_learning\modelos\best_lesoes.pt'
 ```
 
-Essa variável é opcional e não aponta para um arquivo existente nesta entrega. A API recusa um peso de folhas como detector de lesões. O contrato diferencia:
+Sem essa variável, a API continua funcionando e devolve `nao_disponivel`. A API recusa um peso de folhas como detector de lesões. O contrato diferencia:
 
 | Estado de `deteccao_lesoes` | Significado na tela |
 | --- | --- |
@@ -76,30 +78,21 @@ Essa variável é opcional e não aponta para um arquivo existente nesta entrega
 | `concluido`, com itens | Regiões numeradas sobre a imagem e listadas com pontuações próprias. |
 | `erro` | Falha técnica somente nas lesões; mantém a classificação como resultado parcial e permite nova tentativa. |
 
-O futuro detector usa a imagem completa; a hipótese de doença da folha não é atribuída automaticamente a cada região. Resultados divergentes são apresentados separadamente. Caixas não medem área afetada nem severidade.
+O detector de lesões usa a imagem completa; a hipótese de doença da folha não é atribuída automaticamente a cada região. Resultados divergentes são apresentados separadamente. Caixas não medem área afetada nem severidade.
 
 ## Serviço do Windows
 
-O repositório inclui `../SafraCertaServico.xml`, cujo executável e diretório apontam para `api_modelo` ao lado do wrapper. Um serviço já instalado com uma cópia em Downloads pode continuar executando o código antigo mesmo após editar o projeto.
+O serviço `SafraCertaAPI` é o WinSW da pasta `deep_learning/SafraCerta_API`, registrado em 11/11/2026 a partir do próprio repositório. O `SafraCertaServico.xml` ao lado dele define o Python da `.venv`, o diretório `api_modelo`, a credencial do Firebase em `C:\ProgramData\SafraCerta\firebase-api.json` e o peso de lesões. A cópia antiga em Downloads não é mais usada.
 
-Na instalação conferida em 21/10/2026, o XML ativo está em `C:\Users\gffernandes\Downloads\SafraCerta_API_Windows\SafraCerta_API\SafraCertaServico.xml`. Esse arquivo foi atualizado para executar a API do projeto em `C:\SafraCerta\deep_learning\SafraCerta_API\api_modelo`; o serviço foi reiniciado e a versão 2 está ativa na porta 8000. O wrapper permanece em Downloads.
-
-No XML usado pelo serviço instalado, os campos devem apontar para:
-
-```xml
-<executable>C:\SafraCerta\deep_learning\SafraCerta_API\api_modelo\.venv\Scripts\python.exe</executable>
-<arguments>-m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1</arguments>
-<workingdirectory>C:\SafraCerta\deep_learning\SafraCerta_API\api_modelo</workingdirectory>
-```
-
-Faça backup do XML antes de alterar. Reiniciar o serviço exige PowerShell como administrador:
+Depois de editar o XML, reinicie em um PowerShell como administrador. A API leva cerca de um minuto para responder depois de iniciar:
 
 ```powershell
-Restart-Service -Name SafraCertaAPI
+cd C:\SafraCerta\deep_learning\SafraCerta_API
+.\SafraCertaServico.exe restart
 Invoke-RestMethod http://127.0.0.1:8000/saude
 ```
 
-Confira `versao_resposta: 2`, `detector_folha_carregado: true` e `detector_lesoes_carregado: false` enquanto não houver o novo peso. Se houver falha na inicialização, confira os logs do wrapper, restaure o XML anterior e reinicie o serviço.
+Confira `versao_resposta: 2`, `detector_folha_carregado: true` e `detector_lesoes_carregado: true`. Se houver falha na inicialização, confira os logs em `deep_learning/SafraCerta_API/logs`.
 
 ## Verificação
 

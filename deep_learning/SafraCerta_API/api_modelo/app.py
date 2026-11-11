@@ -115,8 +115,8 @@ def abrir_imagem(conteudo: bytes) -> Image.Image:
     except (UnidentifiedImageError, OSError, ValueError):
         raise HTTPException(400, 'Arquivo inválido ou imagem corrompida.')
 
-def detectar(modelo, imagem: Image.Image, limite: int) -> list[Marcacao]:
-    resultado = modelo.predict(source=imagem, imgsz=640, conf=0.25, max_det=limite, device='cpu', verbose=False, save=False)[0]
+def detectar(modelo, imagem: Image.Image, limite: int, confianca: float) -> list[Marcacao]:
+    resultado = modelo.predict(source=imagem, imgsz=640, conf=confianca, max_det=limite, device='cpu', verbose=False, save=False)[0]
     if resultado.boxes is None:
         raise RuntimeError('O detector não retornou caixas.')
     largura, altura = imagem.size
@@ -155,7 +155,7 @@ def selecionar_folha(marcacoes: list[Marcacao]) -> Marcacao:
 def classificar(request: Request, image: Image.Image):
     try:
         with request.app.state.lock:
-            folha = selecionar_folha(detectar(request.app.state.detector, image, 20))
+            folha = selecionar_folha(detectar(request.app.state.detector, image, 20, 0.25))
             model = request.app.state.modelo
             result = model.predict(source=image, imgsz=224, device='cpu', verbose=False, save=False)[0]
             if result.probs is None:
@@ -164,7 +164,7 @@ def classificar(request: Request, image: Image.Image):
             lesoes = Localizacao(estado='nao_disponivel')
             if request.app.state.lesoes is not None:
                 try:
-                    lesoes = Localizacao(estado='concluido', itens=detectar(request.app.state.lesoes, image, 50))
+                    lesoes = Localizacao(estado='concluido', itens=detectar(request.app.state.lesoes, image, 50, 0.8))
                 except Exception:
                     logger.exception('Falha na localização de lesões')
                     lesoes = Localizacao(estado='erro')

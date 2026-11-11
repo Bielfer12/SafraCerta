@@ -7,6 +7,11 @@
   <arguments>-m uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1</arguments>
   <workingdirectory>%BASE%\api_modelo</workingdirectory>
 
+  <env name="GOOGLE_APPLICATION_CREDENTIALS" value="C:\ProgramData\SafraCerta\firebase-api.json"/>
+  <env name="GOOGLE_CLOUD_PROJECT" value="safracerta-ee9ce"/>
+  <env name="SAFRACERTA_STORAGE_BUCKET" value="safracerta-ee9ce.firebasestorage.app"/>
+  <env name="SAFRACERTA_MODELO_LESOES" value="%BASE%\..\modelos\best_lesoes.pt"/>
+
   <startmode>Automatic</startmode>
   <onfailure action="restart" delay="10 sec"/>
 
