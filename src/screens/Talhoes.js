@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSessao } from "../context/Sessao";
+import CabecalhoApp from "../components/CabecalhoApp";
 import { executarOperacaoTalhao, listarTalhoes, novaOperacaoTalhao } from "../services/talhoes";
 import { UFS, validarTalhao } from "../../functions/talhoes-validacao";
 
@@ -242,20 +242,7 @@ export default function Talhoes() {
   return (
     <SafeAreaView style={styles.tela}>
       <StatusBar style="dark" />
-      <View style={styles.cabecalho}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar para Home"
-          onPress={() => router.back()}
-          style={styles.icone}
-        >
-          <Ionicons name="arrow-back" size={25} color="#FFFFFF" />
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.titulo}>
-          Talhões
-        </Text>
-        <Ionicons name="map-outline" size={25} color="#FFFFFF" />
-      </View>
+      <CabecalhoApp titulo="Talhões" />
       <View style={styles.topo}>
         <View style={styles.linhaBusca}>
           <View style={styles.busca}>
@@ -783,7 +770,7 @@ const styles = StyleSheet.create({
   filtroAtivo: { backgroundColor: "#E4F4DE", borderColor: "#1B5E20" },
   textoFiltro: { color: "#596155", fontSize: 14 },
   textoFiltroAtivo: { color: "#1B5E20", fontWeight: "700" },
-  lista: { paddingHorizontal: 16, paddingBottom: 28, gap: 10 },
+  lista: { paddingHorizontal: 16, paddingBottom: 120, gap: 10 },
   registro: {
     flexDirection: "row",
     alignItems: "center",

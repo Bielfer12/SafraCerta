@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { analisarFoto, ApiError, ApiTimeoutError } from "../services/analiseFolha";
 import { obterNomeClassificacao } from "../utils/nomesClassificacoes";
 import { useSessao } from "../context/Sessao";
+import CabecalhoApp from "../components/CabecalhoApp";
 import { listarTalhoes } from "../services/talhoes";
 import { acompanharAnalise, analisePendente, buscarAnalise, dataAnalise, novaAnaliseId, operacaoAnalise, SITUACOES_ANALISE } from "../services/historicoAnalises";
 import ImagemAnaliseFolha from "../components/ImagemAnaliseFolha";
@@ -416,19 +417,7 @@ export default function TesteFolha({ talhaoInicialId, analiseAnteriorId }) {
         </View>
       </Modal>
 
-      <View style={styles.cabecalho}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          style={styles.botaoIcone}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#1A1C19" />
-        </Pressable>
-        <Text style={styles.tituloCabecalho}>Diagnosticar</Text>
-        <View style={styles.logoFolha}>
-          <Ionicons name="leaf" size={19} color="#00450D" />
-        </View>
-      </View>
+      <CabecalhoApp titulo="Diagnosticar" />
 
       <ScrollView
         contentContainerStyle={styles.conteudo}
@@ -865,13 +854,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#EEEEE9",
     backgroundColor: "#FAFAF5",
   },
-  botaoIcone: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 22,
-  },
   tituloCabecalho: {
     flex: 1,
     color: "#1A1C19",
@@ -879,15 +861,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginLeft: 6,
   },
-  logoFolha: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-    backgroundColor: "#ACF4A4",
-  },
-  conteudo: { padding: 16, paddingBottom: 30 },
+  conteudo: { padding: 16, paddingBottom: 120 },
   avisoOffline: {
     minHeight: 58,
     flexDirection: "row",

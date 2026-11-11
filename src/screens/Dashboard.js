@@ -16,6 +16,7 @@ import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSessao } from "../context/Sessao";
+import CabecalhoApp from "../components/CabecalhoApp";
 import {
   LIMITE_DASHBOARD,
   listarAnalisesPainel,
@@ -468,26 +469,8 @@ export default function Dashboard() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <StatusBar style="light" />
-      <View style={styles.cabecalho}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          style={styles.toque}
-        >
-          <Ionicons name="arrow-back" size={25} color="#FFFFFF" />
-        </Pressable>
-        <Text accessibilityRole="header" style={styles.titulo}>
-          Dashboard
-        </Text>
-        <Pressable
-          accessibilityLabel="Atualizar dashboard"
-          onPress={consultar}
-          style={styles.toque}
-        >
-          <Ionicons name="refresh" size={23} color="#FFFFFF" />
-        </Pressable>
-      </View>
+      <StatusBar style="dark" />
+      <CabecalhoApp titulo="Dashboard" iconeAcao="refresh" rotuloAcao="Atualizar dashboard" aoPressionarAcao={consultar} />
 
       <ScrollView
         contentContainerStyle={styles.conteudo}
@@ -693,7 +676,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   titulo: { flex: 1, fontSize: 22, fontWeight: "700", color: "#FFFFFF" },
-  conteudo: { padding: 16, paddingBottom: 40, flexGrow: 1 },
+  conteudo: { padding: 16, paddingBottom: 120, flexGrow: 1 },
   introducao: {
     color: "#596155",
     fontSize: 15,
