@@ -175,7 +175,7 @@ Mais detalhes em [deep_learning/SafraCerta_API/api_modelo/README.md](deep_learni
 ### 4. Rodar o aplicativo
 
 ```bash
-npm start
+npx expo start -c
 ```
 
 - **Emulador Android:** pressione `a` no terminal. O aplicativo já procura a API em `http://10.0.2.2:8000`, que é o endereço do computador visto pelo emulador.
@@ -188,17 +188,6 @@ EXPO_PUBLIC_API_DOCS_URL=http://192.168.0.10:8000/docs
 ### 5. Entrar no aplicativo
 
 O acesso é por matrícula e senha. As contas são criadas por um usuário Admin, na tela Usuários. Para o primeiro acesso, peça uma conta a um integrante da equipe.
-
-## Testes
-
-| O que testa | Comando | Onde rodar |
-| --- | --- | --- |
-| Padrão do código do aplicativo | `npm run lint` | raiz |
-| Validação da resposta de análise | `npm run test:folha` | raiz |
-| Cloud Functions e regras, nos emuladores do Firebase | `npm run test:emulators` | `functions/` |
-| API de análise | `.venv\Scripts\python.exe -m unittest test_app` | `deep_learning/SafraCerta_API/api_modelo/` |
-
-Os testes das Cloud Functions usam os emuladores do Firebase, que precisam do Java (JDK 11 ou mais novo) instalado.
 
 ## Modelos de IA
 
