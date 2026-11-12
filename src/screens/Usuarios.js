@@ -16,6 +16,7 @@ const camposVazios = {
   emailInstitucional: "",
   telefone: "",
   tipoUsuario: "FUNCIONARIO",
+  novaSenha: "",
 };
 
 function Campo({ titulo, erro, ajuda, bloqueado, ...props }) {
@@ -170,6 +171,7 @@ export default function Usuarios() {
           emailInstitucional: pessoa.emailInstitucional,
           telefone: pessoa.telefone,
           tipoUsuario: pessoa.tipoUsuario,
+          novaSenha: "",
         }
       : { ...camposVazios };
     setCampos(valores);
@@ -214,6 +216,7 @@ export default function Usuarios() {
       invalidos.telefone = "Confira o telefone informado.";
     if (!["ADMIN", "FUNCIONARIO"].includes(dados.tipoUsuario))
       invalidos.tipoUsuario = "Selecione Funcionário ou Admin.";
+    if (dados.novaSenha && dados.novaSenha.length < 6) invalidos.novaSenha = "A senha precisa ter pelo menos 6 caracteres.";
     setErros(invalidos);
     if (Object.keys(invalidos).length) return;
     setSalvando(true);
@@ -227,13 +230,9 @@ export default function Usuarios() {
         versao: formulario.pessoa?.versao,
         originais: formulario.pessoa?.originais,
       });
+      if (cadastro) await enviarInstrucoes(dados.emailInstitucional, true);
+      else setSucesso({ texto: dados.novaSenha ? "Alterações salvas. A nova senha já está valendo." : "Alterações salvas." });
       setFormulario(null);
-      setSucesso({
-        texto: cadastro
-          ? "Usuário cadastrado. Envie as instruções para que ele defina a senha de acesso."
-          : "Alterações salvas.",
-        email: cadastro ? dados.emailInstitucional : null,
-      });
       carregar();
     } catch (erro) {
       setErroForm(erro.message);
@@ -260,18 +259,24 @@ export default function Usuarios() {
     }
   };
 
-  const enviarInstrucoes = async () => {
-    if (enviandoEmail || !sucesso?.email) return;
+  const enviarInstrucoes = async (email, contaNova) => {
     setEnviandoEmail(true);
+    if (!contaNova) setSucesso({ texto: `Enviando e-mail para ${email}...` });
     try {
-      await sendPasswordResetEmail(autenticacao, sucesso.email);
-      setSucesso({ texto: "Instruções enviadas. O usuário poderá definir sua senha pelo e-mail." });
+      await sendPasswordResetEmail(autenticacao, email);
+      setSucesso({
+        texto: contaNova
+          ? `Usuário cadastrado. Enviamos um e-mail para ${email} definir a senha.`
+          : `Enviamos um e-mail para ${email} alterar a senha.`,
+      });
     } catch {
-      setSucesso((anterior) => ({
-        ...anterior,
-        texto:
-          "A conta foi criada, mas não foi possível enviar o e-mail. Tente novamente ou peça ao usuário para usar Esqueceu a senha no login.",
-      }));
+      setSucesso({
+        texto: contaNova
+          ? "A conta foi criada, mas não foi possível enviar o e-mail. Tente novamente ou peça ao usuário para usar Esqueceu a senha no login."
+          : "Não foi possível enviar o e-mail de alteração de senha. Tente novamente.",
+        email,
+        contaNova,
+      });
     } finally {
       setEnviandoEmail(false);
     }
@@ -325,11 +330,11 @@ export default function Usuarios() {
             <Pressable
               accessibilityRole="button"
               disabled={enviandoEmail}
-              onPress={enviarInstrucoes}
+              onPress={() => enviarInstrucoes(sucesso.email, sucesso.contaNova)}
               style={styles.botaoSecundario}
             >
               <Text style={styles.textoSecundario}>
-                {enviandoEmail ? "Enviando..." : "Enviar instruções de senha"}
+                {enviandoEmail ? "Enviando..." : "Tentar novamente"}
               </Text>
             </Pressable>
           ) : null}
@@ -458,6 +463,19 @@ export default function Usuarios() {
                   <Text style={styles.textoAcao}>Alterar</Text>
                 </Pressable>
               ) : null}
+              {!acoes?.cadastroPendente && !acoes?.exclusaoPendente ? (
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.acao}
+                  onPress={() => {
+                    fecharAcoes(false);
+                    enviarInstrucoes(acoes.emailInstitucional, false);
+                  }}
+                >
+                  <Ionicons name="mail-outline" size={23} color="#1B5E20" />
+                  <Text style={styles.textoAcao}>Reenviar e-mail de senha</Text>
+                </Pressable>
+              ) : null}
               {!acoes?.cadastroPendente ? (
                 <Pressable
                   accessibilityRole="button"
@@ -569,6 +587,21 @@ export default function Usuarios() {
                 keyboardType="phone-pad"
                 autoComplete="tel"
               />
+              {formulario?.modo === "alterar" ? (
+                <Campo
+                  titulo="Nova senha"
+                  value={campos.novaSenha}
+                  onChangeText={(valor) => atualizar("novaSenha", valor)}
+                  bloqueado={salvando}
+                  erro={erros.novaSenha}
+                  maxLength={128}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  ajuda="Deixe em branco para manter a senha atual."
+                />
+              ) : null}
               <Text style={styles.label}>{somenteLeitura ? "Tipo de usuário" : "Tipo de usuário *"}</Text>
               {somenteLeitura ? (
                 <Text style={styles.valorLeitura}>

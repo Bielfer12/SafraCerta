@@ -267,6 +267,25 @@ test("alteração preserva matrícula, e-mail, status e campos fora do formulár
   });
 });
 
+test("alteração com nova senha troca a senha de acesso e rejeita senha curta", async () => {
+  const entrar = (password) =>
+    fetch(
+      `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=teste`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "funcionario@teste.local", password, returnSecureToken: true }),
+      },
+    );
+  await assert.rejects(chamar("alterarUsuario", { ...(await perfil("funcionario")), novaSenha: "12345" }), {
+    status: "INVALID_ARGUMENT",
+  });
+  assert.equal((await entrar("Teste-local-123!")).status, 200);
+  await chamar("alterarUsuario", { ...(await perfil("funcionario")), novaSenha: "Nova-senha-456!" });
+  assert.equal((await entrar("Nova-senha-456!")).status, 200);
+  assert.equal((await entrar("Teste-local-123!")).status, 400);
+});
+
 test("bloqueia rebaixamento do último admin e exclusão da própria conta", async () => {
   await assert.rejects(chamar("alterarUsuario", { ...(await perfil("admin")), tipoUsuario: "FUNCIONARIO" }), {
     status: "FAILED_PRECONDITION",
