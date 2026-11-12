@@ -271,9 +271,6 @@ export default function DetalheAnalise({ id }) {
               Matrícula:{" "}
               {registro.usuarioSnapshot?.matricula || "Não informada"}
             </Text>
-            <Text selectable style={styles.identificador}>
-              UID: {registro.usuarioId}
-            </Text>
             <Text style={styles.descricao}>
               Origem da foto:{" "}
               {registro.origemFoto === "CAMERA" ? "Câmera" : "Galeria"}
@@ -299,20 +296,6 @@ export default function DetalheAnalise({ id }) {
                 s
               </Text>
             ) : null}
-            {registro.modelo ? (
-              <>
-                <Text style={styles.descricao}>
-                  Modelo: {registro.modelo.nome} · API{" "}
-                  {registro.modelo.apiVersao}
-                </Text>
-                <Text selectable style={styles.identificador}>
-                  Pesos: {registro.modelo.pesosSha256}
-                </Text>
-              </>
-            ) : null}
-            <Text selectable style={styles.identificador}>
-              Análise: {id}
-            </Text>
             <Text style={styles.nota}>
               Os dados do talhão e do usuário correspondem à data desta
               tentativa.
@@ -474,7 +457,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   contexto: { paddingVertical: 20, gap: 8 },
-  identificador: { color: "#596155", fontSize: 12, lineHeight: 19 },
   nota: { color: "#596155", fontSize: 13, lineHeight: 21, marginTop: 8 },
   botao: {
     minHeight: 52,

@@ -45,7 +45,8 @@ O projeto foi desenvolvido com base na realidade de **Flávio Borghezan Zanelato
 - **Talhões:** cadastro e consulta dos talhões da propriedade. Toda análise fica ligada a um talhão.
 - **Histórico:** lista das análises feitas, com filtros por período, talhão, situação, classificação e usuário, e a tela de detalhe de cada uma.
 - **Usuários:** cadastro e gerenciamento das contas.
-- **Acesso por perfil:** o login é feito por matrícula e senha. O Funcionário acessa Home, Teste folha, Talhões e Histórico. O Admin acessa também Dashboard e Usuários.
+- **Acesso por perfil:** o login é feito por matrícula e senha. O Funcionário acessa Home, Teste folha, Talhões e Histórico. O Admin acessa também Usuários.
+- **Resumo no Início:** a Home mostra o total de tentativas, a taxa de conclusão e as classificações mais frequentes do período, com filtros e detalhes por talhão, usuário e falha. O Funcionário vê só as próprias análises; o Admin vê todas.
 
 ## Como funciona
 

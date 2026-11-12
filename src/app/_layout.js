@@ -26,7 +26,6 @@ function Navegacao() {
         </Stack.Protected>
         <Stack.Protected guard={admin}>
           <Stack.Screen name="usuarios" />
-          <Stack.Screen name="dashboard" />
         </Stack.Protected>
         <Stack.Protected guard={acessoTalhoes}>
           <Stack.Screen name="talhoes" />
