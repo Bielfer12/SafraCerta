@@ -244,6 +244,11 @@ exports.alterarUsuario = operacao(async (dados, adminUid) => {
   const cadastro = dadosCadastro(dados);
   const uid = texto(dados.uid, 128);
   if (!uid || uid.includes("/")) throw new HttpsError("invalid-argument", "Usuário inválido.");
+  const novaSenha = dados.novaSenha || "";
+  if (typeof novaSenha !== "string" || (novaSenha && (novaSenha.length < 6 || novaSenha.length > 128)))
+    throw new HttpsError("invalid-argument", "Confira os campos destacados.", {
+      campos: { novaSenha: "A senha precisa ter de 6 a 128 caracteres." },
+    });
   await banco.runTransaction(async (transacao) => {
     await conferirAdmin(transacao, adminUid);
     const documento = await transacao.get(usuarios.doc(uid));
@@ -266,6 +271,7 @@ exports.alterarUsuario = operacao(async (dados, adminUid) => {
     });
     transacao.set(controle, { versao: numero });
   });
+  if (novaSenha) await autenticacao.updateUser(uid, { password: novaSenha });
   return { concluido: true };
 });
 
