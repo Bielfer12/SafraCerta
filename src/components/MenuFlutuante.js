@@ -34,10 +34,7 @@ export default function MenuFlutuante() {
     itens.push({ rota: "/talhoes", icone: "map-outline", rotulo: "Talhões" });
     itens.push({ rota: "/historico", icone: "time-outline", rotulo: "Histórico" });
   }
-  if (admin) {
-    itens.push({ rota: "/dashboard", icone: "stats-chart-outline", rotulo: "Dashboard" });
-    itens.push({ rota: "/usuarios", icone: "people-outline", rotulo: "Usuários" });
-  }
+  if (admin) itens.push({ rota: "/usuarios", icone: "people-outline", rotulo: "Usuários" });
 
   if (caminho !== "/teste-folha" && !itens.some((item) => item.rota === caminho)) return null;
 
