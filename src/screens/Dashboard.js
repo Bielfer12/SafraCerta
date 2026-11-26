@@ -2,7 +2,9 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -637,6 +639,10 @@ export default function Dashboard() {
               {seletor === "usuarioId" ? "Filtrar por usuário" : "Filtrar por talhão"}
             </Text>
           </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.flex}
+          >
           <TextInput
             accessibilityLabel="Buscar opção de filtro"
             value={busca}
@@ -670,6 +676,7 @@ export default function Dashboard() {
               <Text style={styles.introducao}>Nenhuma opção encontrada.</Text>
             }
           />
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -678,6 +685,7 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F7F8F4" },
+  flex: { flex: 1 },
   cabecalho: {
     minHeight: 68,
     flexDirection: "row",
@@ -789,7 +797,7 @@ const styles = StyleSheet.create({
   preenchimento: { height: 14, borderRadius: 7 },
   corSaudavel: { backgroundColor: "#1B5E20" },
   corAtencao: { backgroundColor: "#B95000" },
-  corConcluidas: { backgroundColor: "#596155" },
+  corConcluidas: { backgroundColor: "#434D40" },
   corSemResultado: { backgroundColor: "#C9A13B" },
   grafico: {
     height: ALTURA_GRAFICO,
@@ -809,7 +817,7 @@ const styles = StyleSheet.create({
   legenda: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 12 },
   itemLegenda: { flexDirection: "row", alignItems: "center", gap: 6 },
   amostra: { width: 14, height: 14, borderRadius: 3 },
-  legendaPequena: { fontSize: 13, color: "#596155" },
+  legendaPequena: { fontSize: 14, color: "#596155" },
   aposLegenda: { marginTop: 10 },
   linhaLista: {
     gap: 4,
@@ -819,9 +827,9 @@ const styles = StyleSheet.create({
   },
   descricao: { fontSize: 14, color: "#596155", lineHeight: 21 },
   nota: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#596155",
-    lineHeight: 20,
+    lineHeight: 21,
     marginTop: 32,
   },
   estado: {
