@@ -1,5 +1,5 @@
-import { useState } from "react";
-import {ActivityIndicator,Alert,ImageBackground,Modal,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
+import { useRef, useState } from "react";
+import {ActivityIndicator,Alert,ImageBackground,KeyboardAvoidingView,Modal,Platform,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -18,6 +18,7 @@ export default function Login() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [mostrarRecuperacao, setMostrarRecuperacao] = useState(false);
+  const senhaRef = useRef(null);
 
   const entrar = async () => {
     if (carregando) {
@@ -65,7 +66,12 @@ export default function Login() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <ImageBackground
           source={require("../../assets/campo.jpg")}
           style={styles.banner}
@@ -114,6 +120,9 @@ export default function Login() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="username"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => senhaRef.current?.focus()}
               />
             </View>
 
@@ -126,6 +135,7 @@ export default function Login() {
             <View style={styles.campoWrap}>
               <Ionicons name="lock-closed" size={19} color="#41493E" />
               <TextInput
+                ref={senhaRef}
                 style={[styles.campo, styles.campoSenha]}
                 value={senha}
                 onChangeText={setSenha}
@@ -133,6 +143,9 @@ export default function Login() {
                 placeholderTextColor="#798076"
                 secureTextEntry={!mostrarSenha}
                 autoCapitalize="none"
+                autoComplete="current-password"
+                returnKeyType="go"
+                onSubmitEditing={entrar}
               />
               <TouchableOpacity onPress={() => setMostrarSenha(!mostrarSenha)} hitSlop={10}>
                 <Ionicons
@@ -193,9 +206,10 @@ export default function Login() {
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
-      <Modal transparent visible={mostrarRecuperacao} animationType="fade">
-        <View style={styles.fundoModal}>
+      <Modal transparent visible={mostrarRecuperacao} animationType="fade" onRequestClose={() => setMostrarRecuperacao(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fundoModal}>
           <View style={styles.modal}>
             <View style={styles.topoModal}>
               <View style={styles.tituloModal}>
@@ -234,7 +248,7 @@ export default function Login() {
               <Text style={styles.textoBotaoFechar}>Fechar</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -244,6 +258,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FAFAF5",
+  },
+  flex: {
+    flex: 1,
   },
   scroll: {
     flexGrow: 1,
