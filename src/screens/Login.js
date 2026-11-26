@@ -130,7 +130,7 @@ export default function Login() {
                 onChangeText={setMatricula}
                 accessibilityLabel="Matrícula"
                 placeholder="Digite sua matrícula"
-                placeholderTextColor="#798076"
+                placeholderTextColor="#656D61"
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="username"
@@ -159,7 +159,7 @@ export default function Login() {
                 onChangeText={setSenha}
                 accessibilityLabel="Senha de acesso"
                 placeholder="••••••"
-                placeholderTextColor="#798076"
+                placeholderTextColor="#656D61"
                 secureTextEntry={!mostrarSenha}
                 autoCapitalize="none"
                 autoComplete="current-password"
@@ -264,7 +264,7 @@ export default function Login() {
                 onChangeText={setEmailRecuperacao}
                 accessibilityLabel="E-mail para recuperação"
                 placeholder="seuemail@exemplo.com"
-                placeholderTextColor="#798076"
+                placeholderTextColor="#656D61"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   },
   descricaoMarca: {
     color: "#ACF4A4",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1,
     marginTop: -2,
@@ -399,11 +399,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginBottom: 9,
   },
-  obrigatorio: {
-    color: "#717A6D",
-    fontSize: 12,
-    marginBottom: 9,
-  },
   campoWrap: {
     height: 64,
     flexDirection: "row",
@@ -451,7 +446,7 @@ const styles = StyleSheet.create({
   },
   linkSenha: {
     color: "#00450D",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
     marginBottom: 9,
   },
@@ -487,7 +482,7 @@ const styles = StyleSheet.create({
   lembrarTexto: {
     flex: 1,
     color: "#1A1C19",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
   erroBox: {
@@ -504,7 +499,7 @@ const styles = StyleSheet.create({
   erroTexto: {
     flex: 1,
     color: "#BA1A1A",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
   },
   botaoEntrar: {
@@ -546,13 +541,13 @@ const styles = StyleSheet.create({
   },
   textoVersao: {
     color: "#1A1C19",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
   },
   textoRodape: {
-    color: "#717A6D",
-    fontSize: 11,
-    lineHeight: 15,
+    color: "#596155",
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: "center",
   },
   fundoModal: {
@@ -609,13 +604,13 @@ const styles = StyleSheet.create({
   },
   opcoesTitulo: {
     color: "#1A1C19",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "800",
   },
   campoRecuperacao: {
     minHeight: 48,
     color: "#1A1C19",
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
     paddingVertical: 0,
   },
@@ -629,7 +624,7 @@ const styles = StyleSheet.create({
   },
   textoBotaoTemporario: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: "800",
   },
   botaoFechar: {
@@ -643,7 +638,7 @@ const styles = StyleSheet.create({
   },
   textoBotaoFechar: {
     color: "#1A1C19",
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: "700",
   },
 });
