@@ -115,6 +115,7 @@ export default function Login() {
                 style={styles.campo}
                 value={matricula}
                 onChangeText={setMatricula}
+                accessibilityLabel="Matrícula"
                 placeholder="Digite sua matrícula"
                 placeholderTextColor="#798076"
                 autoCapitalize="none"
@@ -128,7 +129,7 @@ export default function Login() {
 
             <View style={styles.linhaLabelSenha}>
               <Text style={styles.label}>Senha de acesso</Text>
-              <TouchableOpacity onPress={() => setMostrarRecuperacao(true)}>
+              <TouchableOpacity onPress={() => setMostrarRecuperacao(true)} accessibilityRole="button">
                 <Text style={styles.linkSenha}>Esqueceu a senha?</Text>
               </TouchableOpacity>
             </View>
@@ -139,6 +140,7 @@ export default function Login() {
                 style={[styles.campo, styles.campoSenha]}
                 value={senha}
                 onChangeText={setSenha}
+                accessibilityLabel="Senha de acesso"
                 placeholder="••••••"
                 placeholderTextColor="#798076"
                 secureTextEntry={!mostrarSenha}
@@ -147,7 +149,12 @@ export default function Login() {
                 returnKeyType="go"
                 onSubmitEditing={entrar}
               />
-              <TouchableOpacity onPress={() => setMostrarSenha(!mostrarSenha)} hitSlop={10}>
+              <TouchableOpacity
+                onPress={() => setMostrarSenha(!mostrarSenha)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              >
                 <Ionicons
                   name={mostrarSenha ? "eye-off-outline" : "eye-outline"}
                   size={21}
@@ -160,6 +167,8 @@ export default function Login() {
               style={styles.lembrarRow}
               onPress={() => setLembrarAcesso(!lembrarAcesso)}
               activeOpacity={0.8}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: lembrarAcesso }}
             >
               <View style={[styles.checkbox, lembrarAcesso && styles.checkboxAtivo]}>
                 {lembrarAcesso && <Ionicons name="checkmark" size={15} color="#FFFFFF" />}
@@ -168,7 +177,7 @@ export default function Login() {
             </TouchableOpacity>
 
             {erro || mensagem ? (
-              <View style={styles.erroBox}>
+              <View style={styles.erroBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
                 <Ionicons name="alert-circle" size={18} color="#BA1A1A" />
                 <Text style={styles.erroTexto}>{erro || mensagem}</Text>
               </View>
@@ -179,6 +188,8 @@ export default function Login() {
               onPress={entrar}
               disabled={carregando}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: carregando, busy: carregando }}
             >
               {carregando ? (
                 <>
@@ -216,7 +227,12 @@ export default function Login() {
                 <Ionicons name="key-outline" size={24} color="#1B5E20" />
                 <Text style={styles.textoTituloModal}>Recuperar acesso</Text>
               </View>
-              <TouchableOpacity style={styles.fecharModal} onPress={() => setMostrarRecuperacao(false)}>
+              <TouchableOpacity
+                style={styles.fecharModal}
+                onPress={() => setMostrarRecuperacao(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Fechar recuperação de acesso"
+              >
                 <Ionicons name="close" size={19} color="#41493E" />
               </TouchableOpacity>
             </View>
@@ -229,6 +245,7 @@ export default function Login() {
                 style={styles.campoRecuperacao}
                 value={emailRecuperacao}
                 onChangeText={setEmailRecuperacao}
+                accessibilityLabel="E-mail para recuperação"
                 placeholder="seuemail@exemplo.com"
                 placeholderTextColor="#798076"
                 keyboardType="email-address"
@@ -241,10 +258,11 @@ export default function Login() {
               style={styles.botaoTemporario}
               onPress={recuperarSenha}
               disabled={carregando}
+              accessibilityRole="button"
             >
               <Text style={styles.textoBotaoTemporario}>Enviar e-mail de recuperação</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.botaoFechar} onPress={() => setMostrarRecuperacao(false)}>
+            <TouchableOpacity style={styles.botaoFechar} onPress={() => setMostrarRecuperacao(false)} accessibilityRole="button">
               <Text style={styles.textoBotaoFechar}>Fechar</Text>
             </TouchableOpacity>
           </View>
