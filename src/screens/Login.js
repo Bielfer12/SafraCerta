@@ -140,9 +140,13 @@ export default function Login() {
               />
             </View>
 
-            <View style={styles.linhaLabelSenha}>
+            <View style={styles.linhaLabelSenhaComLink}>
               <Text style={styles.label}>Senha de acesso</Text>
-              <TouchableOpacity onPress={() => setMostrarRecuperacao(true)} accessibilityRole="button">
+              <TouchableOpacity
+                style={styles.areaLinkSenha}
+                onPress={() => setMostrarRecuperacao(true)}
+                accessibilityRole="button"
+              >
                 <Text style={styles.linkSenha}>Esqueceu a senha?</Text>
               </TouchableOpacity>
             </View>
@@ -163,8 +167,8 @@ export default function Login() {
                 onSubmitEditing={entrar}
               />
               <TouchableOpacity
+                style={styles.botaoOlho}
                 onPress={() => setMostrarSenha(!mostrarSenha)}
-                hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
               >
@@ -347,9 +351,9 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   botaoAjuda: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.2)",
@@ -412,12 +416,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 24,
   },
+  // o input ocupa os 64px do campo (antes só a linha do texto recebia o toque)
   campo: {
     flex: 1,
+    alignSelf: "stretch",
     color: "#1A1C19",
     fontSize: 17,
     fontWeight: "700",
     paddingVertical: 0,
+    textAlignVertical: "center",
   },
   campoSenha: {
     letterSpacing: 3,
@@ -427,18 +434,42 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  // link com 48px de altura; a margem negativa deixa o rótulo onde ele estava
+  linhaLabelSenhaComLink: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    minHeight: 48,
+    marginTop: -22,
+  },
+  areaLinkSenha: {
+    minHeight: 48,
+    minWidth: 48,
+    marginLeft: "auto",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
+  },
   linkSenha: {
     color: "#00450D",
     fontSize: 13,
     fontWeight: "800",
     marginBottom: 9,
   },
+  botaoOlho: {
+    minWidth: 48,
+    minHeight: 48,
+    marginRight: -14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   lembrarRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    minHeight: 48,
     paddingHorizontal: 3,
-    marginBottom: 20,
+    marginTop: -12,
+    marginBottom: 8,
   },
   checkbox: {
     width: 23,
@@ -556,9 +587,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   fecharModal: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#F4F4EF",
@@ -582,7 +613,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   campoRecuperacao: {
-    minHeight: 40,
+    minHeight: 48,
     color: "#1A1C19",
     fontSize: 14,
     fontWeight: "600",
@@ -590,6 +621,8 @@ const styles = StyleSheet.create({
   },
   botaoTemporario: {
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
     borderRadius: 12,
     backgroundColor: "#1B5E20",
     paddingVertical: 13,
@@ -601,6 +634,8 @@ const styles = StyleSheet.create({
   },
   botaoFechar: {
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
     borderRadius: 12,
     backgroundColor: "#F4F4EF",
     paddingVertical: 12,
