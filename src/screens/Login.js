@@ -97,7 +97,7 @@ export default function Login() {
               <View style={styles.iconeMarca}>
                 <Ionicons name="leaf" size={23} color="#00450D" />
               </View>
-              <View>
+              <View style={styles.textosMarca}>
                 <Text style={styles.nomeMarca}>SafraCerta</Text>
                 <Text style={styles.descricaoMarca}>DIAGNÓSTICO DE CAMPO</Text>
               </View>
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAF5",
   },
   banner: {
-    height: 280,
+    minHeight: 280,
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -326,6 +326,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
+    flexShrink: 1,
+  },
+  textosMarca: {
+    flexShrink: 1,
   },
   iconeMarca: {
     width: 36,
@@ -436,6 +440,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
+    flexWrap: "wrap",
+    columnGap: 12,
     minHeight: 48,
     marginTop: -22,
   },
@@ -505,7 +511,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   botaoEntrar: {
-    height: 64,
+    minHeight: 64,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 18,
     backgroundColor: "#1B5E20",
     flexDirection: "row",
@@ -522,6 +530,8 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   textoBotao: {
+    flexShrink: 1,
+    textAlign: "center",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
