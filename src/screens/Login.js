@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import {ActivityIndicator,Alert,ImageBackground,KeyboardAvoidingView,Modal,Platform,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
+import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -19,6 +20,7 @@ export default function Login() {
   const [erro, setErro] = useState("");
   const [mostrarRecuperacao, setMostrarRecuperacao] = useState(false);
   const senhaRef = useRef(null);
+  const versao = Constants.expoConfig?.version;
 
   const mostrarAjuda = () => {
     Alert.alert(
@@ -227,7 +229,7 @@ export default function Login() {
         <View style={styles.rodape}>
           <View style={styles.versao}>
             <Ionicons name="shield-checkmark" size={16} color="#1B5E20" />
-            <Text style={styles.textoVersao}>SafraCerta v0.0.1</Text>
+            <Text style={styles.textoVersao}>{versao ? `SafraCerta v${versao}` : "SafraCerta"}</Text>
           </View>
           <Text style={styles.textoRodape}>
             Desenvolvido para pequenos produtores e lavouras de Santa Catarina.
