@@ -20,6 +20,13 @@ export default function Login() {
   const [mostrarRecuperacao, setMostrarRecuperacao] = useState(false);
   const senhaRef = useRef(null);
 
+  const mostrarAjuda = () => {
+    Alert.alert(
+      "Como acessar",
+      "Sua conta é criada por um administrador da lavoura. Se ainda não tem acesso, peça o cadastro a ele. Se esqueceu a senha, toque em “Esqueceu a senha?”.",
+    );
+  };
+
   const entrar = async () => {
     if (carregando) {
       return;
@@ -93,7 +100,13 @@ export default function Login() {
                 <Text style={styles.descricaoMarca}>DIAGNÓSTICO DE CAMPO</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.botaoAjuda} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.botaoAjuda}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Ajuda para acessar o aplicativo"
+              onPress={mostrarAjuda}
+            >
               <Ionicons name="help-outline" size={21} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
