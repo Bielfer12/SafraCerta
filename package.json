@@ -33,7 +33,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:folha": "node --test tests/localizacaoFolha.test.mjs",
-    "test:dashboard": "node --test tests/dashboardAnalises.test.mjs"
+    "test:dashboard": "node --test tests/dashboardAnalises.test.mjs",
+    "test:auditoria": "node --test tests/auditoriaInterface.test.mjs",
+    "audit:interface": "node scripts/auditoria-interface.mjs"
   },
   "private": true,
   "devDependencies": {
