@@ -1,5 +1,6 @@
-import { useState } from "react";
-import {ActivityIndicator,Alert,ImageBackground,Modal,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
+import { useRef, useState } from "react";
+import {ActivityIndicator,Alert,ImageBackground,KeyboardAvoidingView,Modal,Platform,ScrollView,StatusBar,StyleSheet,Text,TextInput,TouchableOpacity,View,} from "react-native";
+import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -18,6 +19,15 @@ export default function Login() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const [mostrarRecuperacao, setMostrarRecuperacao] = useState(false);
+  const senhaRef = useRef(null);
+  const versao = Constants.expoConfig?.version;
+
+  const mostrarAjuda = () => {
+    Alert.alert(
+      "Como acessar",
+      "Sua conta é criada por um administrador da lavoura. Se ainda não tem acesso, peça o cadastro a ele. Se esqueceu a senha, toque em “Esqueceu a senha?”.",
+    );
+  };
 
   const entrar = async () => {
     if (carregando) {
@@ -65,7 +75,12 @@ export default function Login() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <ImageBackground
           source={require("../../assets/campo.jpg")}
           style={styles.banner}
@@ -82,12 +97,18 @@ export default function Login() {
               <View style={styles.iconeMarca}>
                 <Ionicons name="leaf" size={23} color="#00450D" />
               </View>
-              <View>
+              <View style={styles.textosMarca}>
                 <Text style={styles.nomeMarca}>SafraCerta</Text>
                 <Text style={styles.descricaoMarca}>DIAGNÓSTICO DE CAMPO</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.botaoAjuda} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.botaoAjuda}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Ajuda para acessar o aplicativo"
+              onPress={mostrarAjuda}
+            >
               <Ionicons name="help-outline" size={21} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -109,32 +130,50 @@ export default function Login() {
                 style={styles.campo}
                 value={matricula}
                 onChangeText={setMatricula}
+                accessibilityLabel="Matrícula"
                 placeholder="Digite sua matrícula"
-                placeholderTextColor="#798076"
+                placeholderTextColor="#656D61"
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="username"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => senhaRef.current?.focus()}
               />
             </View>
 
-            <View style={styles.linhaLabelSenha}>
+            <View style={styles.linhaLabelSenhaComLink}>
               <Text style={styles.label}>Senha de acesso</Text>
-              <TouchableOpacity onPress={() => setMostrarRecuperacao(true)}>
+              <TouchableOpacity
+                style={styles.areaLinkSenha}
+                onPress={() => setMostrarRecuperacao(true)}
+                accessibilityRole="button"
+              >
                 <Text style={styles.linkSenha}>Esqueceu a senha?</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.campoWrap}>
               <Ionicons name="lock-closed" size={19} color="#41493E" />
               <TextInput
+                ref={senhaRef}
                 style={[styles.campo, styles.campoSenha]}
                 value={senha}
                 onChangeText={setSenha}
+                accessibilityLabel="Senha de acesso"
                 placeholder="••••••"
-                placeholderTextColor="#798076"
+                placeholderTextColor="#656D61"
                 secureTextEntry={!mostrarSenha}
                 autoCapitalize="none"
+                autoComplete="current-password"
+                returnKeyType="go"
+                onSubmitEditing={entrar}
               />
-              <TouchableOpacity onPress={() => setMostrarSenha(!mostrarSenha)} hitSlop={10}>
+              <TouchableOpacity
+                style={styles.botaoOlho}
+                onPress={() => setMostrarSenha(!mostrarSenha)}
+                accessibilityRole="button"
+                accessibilityLabel={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              >
                 <Ionicons
                   name={mostrarSenha ? "eye-off-outline" : "eye-outline"}
                   size={21}
@@ -147,6 +186,8 @@ export default function Login() {
               style={styles.lembrarRow}
               onPress={() => setLembrarAcesso(!lembrarAcesso)}
               activeOpacity={0.8}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: lembrarAcesso }}
             >
               <View style={[styles.checkbox, lembrarAcesso && styles.checkboxAtivo]}>
                 {lembrarAcesso && <Ionicons name="checkmark" size={15} color="#FFFFFF" />}
@@ -155,7 +196,7 @@ export default function Login() {
             </TouchableOpacity>
 
             {erro || mensagem ? (
-              <View style={styles.erroBox}>
+              <View style={styles.erroBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
                 <Ionicons name="alert-circle" size={18} color="#BA1A1A" />
                 <Text style={styles.erroTexto}>{erro || mensagem}</Text>
               </View>
@@ -166,6 +207,8 @@ export default function Login() {
               onPress={entrar}
               disabled={carregando}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: carregando, busy: carregando }}
             >
               {carregando ? (
                 <>
@@ -186,23 +229,29 @@ export default function Login() {
         <View style={styles.rodape}>
           <View style={styles.versao}>
             <Ionicons name="shield-checkmark" size={16} color="#1B5E20" />
-            <Text style={styles.textoVersao}>SafraCerta v0.0.1</Text>
+            <Text style={styles.textoVersao}>{versao ? `SafraCerta v${versao}` : "SafraCerta"}</Text>
           </View>
           <Text style={styles.textoRodape}>
             Desenvolvido para pequenos produtores e lavouras de Santa Catarina.
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
-      <Modal transparent visible={mostrarRecuperacao} animationType="fade">
-        <View style={styles.fundoModal}>
+      <Modal transparent visible={mostrarRecuperacao} animationType="fade" onRequestClose={() => setMostrarRecuperacao(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fundoModal}>
           <View style={styles.modal}>
             <View style={styles.topoModal}>
               <View style={styles.tituloModal}>
                 <Ionicons name="key-outline" size={24} color="#1B5E20" />
                 <Text style={styles.textoTituloModal}>Recuperar acesso</Text>
               </View>
-              <TouchableOpacity style={styles.fecharModal} onPress={() => setMostrarRecuperacao(false)}>
+              <TouchableOpacity
+                style={styles.fecharModal}
+                onPress={() => setMostrarRecuperacao(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Fechar recuperação de acesso"
+              >
                 <Ionicons name="close" size={19} color="#41493E" />
               </TouchableOpacity>
             </View>
@@ -215,8 +264,9 @@ export default function Login() {
                 style={styles.campoRecuperacao}
                 value={emailRecuperacao}
                 onChangeText={setEmailRecuperacao}
+                accessibilityLabel="E-mail para recuperação"
                 placeholder="seuemail@exemplo.com"
-                placeholderTextColor="#798076"
+                placeholderTextColor="#656D61"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -227,14 +277,15 @@ export default function Login() {
               style={styles.botaoTemporario}
               onPress={recuperarSenha}
               disabled={carregando}
+              accessibilityRole="button"
             >
               <Text style={styles.textoBotaoTemporario}>Enviar e-mail de recuperação</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.botaoFechar} onPress={() => setMostrarRecuperacao(false)}>
+            <TouchableOpacity style={styles.botaoFechar} onPress={() => setMostrarRecuperacao(false)} accessibilityRole="button">
               <Text style={styles.textoBotaoFechar}>Fechar</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -245,12 +296,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FAFAF5",
   },
+  flex: {
+    flex: 1,
+  },
   scroll: {
     flexGrow: 1,
     backgroundColor: "#FAFAF5",
   },
   banner: {
-    height: 280,
+    minHeight: 280,
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -272,6 +326,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
+    flexShrink: 1,
+  },
+  textosMarca: {
+    flexShrink: 1,
   },
   iconeMarca: {
     width: 36,
@@ -293,15 +351,15 @@ const styles = StyleSheet.create({
   },
   descricaoMarca: {
     color: "#ACF4A4",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1,
     marginTop: -2,
   },
   botaoAjuda: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.2)",
@@ -347,11 +405,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginBottom: 9,
   },
-  obrigatorio: {
-    color: "#717A6D",
-    fontSize: 12,
-    marginBottom: 9,
-  },
   campoWrap: {
     height: 64,
     flexDirection: "row",
@@ -364,12 +417,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 24,
   },
+  // o input ocupa os 64px do campo (antes só a linha do texto recebia o toque)
   campo: {
     flex: 1,
+    alignSelf: "stretch",
     color: "#1A1C19",
     fontSize: 17,
     fontWeight: "700",
     paddingVertical: 0,
+    textAlignVertical: "center",
   },
   campoSenha: {
     letterSpacing: 3,
@@ -379,18 +435,44 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  // link com 48px de altura; a margem negativa deixa o rótulo onde ele estava
+  linhaLabelSenhaComLink: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    flexWrap: "wrap",
+    columnGap: 12,
+    minHeight: 48,
+    marginTop: -22,
+  },
+  areaLinkSenha: {
+    minHeight: 48,
+    minWidth: 48,
+    marginLeft: "auto",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
+  },
   linkSenha: {
     color: "#00450D",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
     marginBottom: 9,
+  },
+  botaoOlho: {
+    minWidth: 48,
+    minHeight: 48,
+    marginRight: -14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   lembrarRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    minHeight: 48,
     paddingHorizontal: 3,
-    marginBottom: 20,
+    marginTop: -12,
+    marginBottom: 8,
   },
   checkbox: {
     width: 23,
@@ -408,7 +490,7 @@ const styles = StyleSheet.create({
   lembrarTexto: {
     flex: 1,
     color: "#1A1C19",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
   erroBox: {
@@ -425,11 +507,13 @@ const styles = StyleSheet.create({
   erroTexto: {
     flex: 1,
     color: "#BA1A1A",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
   },
   botaoEntrar: {
-    height: 64,
+    minHeight: 64,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 18,
     backgroundColor: "#1B5E20",
     flexDirection: "row",
@@ -446,6 +530,8 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   textoBotao: {
+    flexShrink: 1,
+    textAlign: "center",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
@@ -467,13 +553,13 @@ const styles = StyleSheet.create({
   },
   textoVersao: {
     color: "#1A1C19",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
   },
   textoRodape: {
-    color: "#717A6D",
-    fontSize: 11,
-    lineHeight: 15,
+    color: "#596155",
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: "center",
   },
   fundoModal: {
@@ -508,9 +594,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   fecharModal: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#F4F4EF",
@@ -530,29 +616,33 @@ const styles = StyleSheet.create({
   },
   opcoesTitulo: {
     color: "#1A1C19",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "800",
   },
   campoRecuperacao: {
-    minHeight: 40,
+    minHeight: 48,
     color: "#1A1C19",
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
     paddingVertical: 0,
   },
   botaoTemporario: {
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
     borderRadius: 12,
     backgroundColor: "#1B5E20",
     paddingVertical: 13,
   },
   textoBotaoTemporario: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: "800",
   },
   botaoFechar: {
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
     borderRadius: 12,
     backgroundColor: "#F4F4EF",
     paddingVertical: 12,
@@ -560,7 +650,7 @@ const styles = StyleSheet.create({
   },
   textoBotaoFechar: {
     color: "#1A1C19",
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: "700",
   },
 });

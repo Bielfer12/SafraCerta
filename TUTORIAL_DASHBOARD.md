@@ -57,7 +57,7 @@ Os testes cobrem contagens por situação, exclusão de falhas no gráfico de cl
 Conferência manual no aparelho:
 
 1. Com uma conta Admin, faça análises que concluam e análises que falhem (por exemplo, uma foto sem folha).
-2. Abra Dashboard e compare os totais com a lista do Histórico no mesmo período.
+2. Abra o Dashboard e compare os totais com o Histórico usando **Tudo** no Dashboard e **Todo o período** no Histórico. Os períodos de 7, 30 e 90 dias não batem na borda: o Histórico conta a partir da hora atual e o Dashboard a partir da meia-noite do primeiro dia (incluindo hoje), então alguns registros do dia da borda podem diferir sem ser bug.
 3. Troque o período e o talhão e confira se os números mudam junto com os filtros.
 4. Entre com uma conta Funcionário: o filtro e a seção de usuário não devem aparecer, e os números devem refletir só as próprias análises.
 5. Desligue a internet e toque em atualizar: deve aparecer o aviso de erro com "Tentar novamente", nunca uma tela de zeros.
