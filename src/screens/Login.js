@@ -232,7 +232,7 @@ export default function Login() {
             <Text style={styles.textoVersao}>{versao ? `SafraCerta v${versao}` : "SafraCerta"}</Text>
           </View>
           <Text style={styles.textoRodape}>
-            Desenvolvido para pequenos produtores e lavouras de Santa Catarina.
+            Desenvolvido por alunos da Eng. de Computação da UniSATC.
           </Text>
         </View>
       </ScrollView>
